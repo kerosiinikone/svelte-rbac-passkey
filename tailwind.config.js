@@ -11,7 +11,14 @@ export default {
 				}
 			]
 		},
-		extend: {}
+		extend: {
+			fontSize: {
+				h1: 'var(--h1-font-size)',
+				h2: 'var(--h2-font-size)',
+				h3: 'var(--h3-font-size)',
+				h4: 'var(--h4-font-size)'
+			}
+		}
 	},
 	plugins: []
 };
