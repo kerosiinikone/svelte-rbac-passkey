@@ -1,9 +1,16 @@
 <script lang="ts">
-	import { superForm } from 'sveltekit-superforms';
+	import { enhance } from '$app/forms';
 
-	const { data } = $props();
+	const { form } = $props();
+	let isPending = $state(false);
 
-	const { form } = superForm(data.form);
+	$effect(() => {
+		if (form) {
+			isPending = false;
+		}
+	});
+
+	$inspect(form);
 </script>
 
 <div class="h-full w-full flex flex-col justify-center items-center">
@@ -13,17 +20,32 @@
 	>
 		<div><h3 class="text-h3">Kirjaudu tai luo tili</h3></div>
 		<div class="w-[350px]">
-			<form method="POST" class="flex flex-col gap-8">
+			<form
+				method="POST"
+				onsubmit={() => {
+					isPending = true;
+				}}
+				use:enhance
+				action="?/signin"
+				class="flex flex-col gap-8"
+			>
 				<!-- Autofill -->
 				<input
 					type="email"
 					placeholder="Sähköposti"
 					class="py-2 px-4 border-2 border-slate-150 rounded-3xl w-full bg-slate-50"
 					name="email"
-					bind:value={$form.email}
 				/>
-				<button class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50">
-					Jatka
+				<button
+					disabled={isPending}
+					type="submit"
+					class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50"
+				>
+					{#if isPending}
+						<span>Lataa...</span>
+					{:else}
+						<span>Jatka</span>
+					{/if}
 				</button>
 			</form>
 		</div>

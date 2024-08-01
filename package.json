@@ -18,7 +18,9 @@
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^3.0.0",
 		"@types/eslint": "^9.6.0",
+		"@types/nodemailer": "^6.4.15",
 		"autoprefixer": "^10.4.19",
+		"drizzle-kit": "^0.23.1",
 		"eslint": "^9.0.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.36.0",
@@ -35,5 +37,12 @@
 		"vite": "^5.0.3",
 		"zod": "^3.23.8"
 	},
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"@types/bcrypt": "^5.0.2",
+		"bcrypt": "^5.1.1",
+		"drizzle-orm": "^0.32.1",
+		"nodemailer": "^6.9.14",
+		"postgres": "^3.4.4"
+	}
 }

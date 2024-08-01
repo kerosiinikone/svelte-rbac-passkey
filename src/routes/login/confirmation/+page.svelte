@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+
 	let inputs = $state(Array(6).fill('') as string[]);
 	let inputRefs = $state(Array(6).fill(null));
 	let focusedIndex = $state(0);
@@ -9,13 +11,16 @@
 		},
 		index: number
 	) => {
+		// Set the corresponding array item to the value of the input
 		inputs[index] = event.currentTarget?.value[0] || '';
+		// If the value is not empty and the focus isn't on the last element, focus on the next element
 		if (event.currentTarget?.value && index < 5) {
 			focusedIndex = index + 1;
 			inputRefs[focusedIndex].focus();
 		}
 	};
 
+	// If the focus is on the last element, shift the focus back to the beginning (not necessary)
 	$effect(() => {
 		if (focusedIndex === inputs.length - 1 && inputs[focusedIndex]) {
 			focusedIndex = 0;
@@ -34,8 +39,13 @@
 			<h4 class="text-h4 text-slate-300">Anna sähköpostiisi tullut pääsykoodi</h4>
 		</div>
 		<div class="w-full flex flex-col gap-3">
-			<form method="POST" class="flex flex-col gap-8">
-				<!-- Autofill -->
+			<form
+				method="POST"
+				use:enhance={({ formData }) => {
+					formData.append('code', inputs.join(''));
+				}}
+				class="flex flex-col gap-8"
+			>
 				<div class="flex flex-row w-full justify-between items-center">
 					{#each inputs as _, index}
 						<input
@@ -48,7 +58,10 @@
 						/>
 					{/each}
 				</div>
-				<button class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50">
+				<button
+					type="submit"
+					class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50"
+				>
 					Jatka
 				</button>
 			</form>
