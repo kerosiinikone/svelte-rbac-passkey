@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 
+	// Resend possibility?
+
 	let inputs = $state(Array(6).fill('') as string[]);
 	let inputRefs = $state(Array(6).fill(null));
 	let focusedIndex = $state(0);

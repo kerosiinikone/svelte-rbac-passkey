@@ -1,4 +1,4 @@
-import { index, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export enum Roles {
 	DEFAULT = 'DEFAULT',
@@ -13,7 +13,8 @@ export const usersTable = pgTable(
 	{
 		id: uuid('id').primaryKey(),
 		email: text('email').notNull(),
-		role: roleEnum('role').$type<Roles>().notNull()
+		role: roleEnum('role').$type<Roles>().notNull(),
+		token_version: integer('token_version').notNull().default(1)
 	},
 	(table) => {
 		return {

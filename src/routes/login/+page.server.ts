@@ -1,12 +1,13 @@
 import { db } from '$lib/server/db/index.js';
 import { passcodeTable, Roles, usersTable } from '$lib/server/db/schema.js';
-import createPasscode from '$lib/server/helpers/createPasscode.js';
+import { createPasscode } from '$lib/server/helpers/passcode.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
-import { EMAIL_ADDRESS, EMAIL_PASSWORD } from '$env/static/private';
+import { EMAIL_ADDRESS, EMAIL_PASSWORD, JWT_SECRET } from '$env/static/private';
+import jwt from 'jsonwebtoken';
 
 export const actions = {
 	signin: async ({ request, cookies }) => {
@@ -62,7 +63,7 @@ export const actions = {
 				passcode: hashedCode
 			});
 
-			cookies.set('email', JSON.stringify(email), {
+			cookies.set('pending_email', JSON.stringify(email), {
 				path: '/',
 				secure: true,
 				httpOnly: true
@@ -72,15 +73,49 @@ export const actions = {
 		}
 
 		// If it doesn't, register a new account, prompt the user to add a passkey
-		await db.insert(usersTable).values({
-			id: crypto.randomUUID(),
-			email,
-			role: Roles.DEFAULT
-		});
+		const user = await db
+			.insert(usersTable)
+			.values({
+				id: crypto.randomUUID(),
+				email,
+				role: Roles.DEFAULT
+			})
+			.returning()
+			.then((res) => res[0]);
 
 		// Set cookies and log the user in
-		// Show the user the "Set Passkey" page
 
-		return { success: true };
+		/* 
+			Sign the cookies with the user id (maybe passkey?)
+			Set them securely
+			Redirect the user
+		*/
+
+		const accessPayload = {
+			id: user.id
+		};
+
+		const refreshPayload = {
+			id: user.id,
+			version: user.token_version
+		};
+
+		const accessToken = jwt.sign(accessPayload, JWT_SECRET);
+		const refreshToken = jwt.sign(refreshPayload, JWT_SECRET);
+
+		cookies.set('accessToken', accessToken, {
+			path: '/',
+			maxAge: 7 * 24 * 60 * 60 * 1000,
+			httpOnly: true,
+			secure: true
+		});
+		cookies.set('refreshToken', refreshToken, {
+			path: '/',
+			maxAge: 15 * 60 * 1000,
+			httpOnly: true,
+			secure: true
+		});
+
+		redirect(303, '/login/create-passkey');
 	}
 };
