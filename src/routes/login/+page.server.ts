@@ -66,7 +66,8 @@ export const actions = {
 			cookies.set('pending_email', JSON.stringify(email), {
 				path: '/',
 				secure: true,
-				httpOnly: true
+				httpOnly: true,
+				maxAge: 1000 * 60 * 6 // 5 minutes
 			});
 
 			redirect(303, '/login/confirmation');
@@ -115,6 +116,8 @@ export const actions = {
 			httpOnly: true,
 			secure: true
 		});
+
+		locals.user = user.id;
 
 		redirect(303, '/login/create-passkey');
 	}

@@ -1,8 +1,37 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { startRegistration } from '@simplewebauthn/browser';
+	import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
+	import { json } from '@sveltejs/kit';
+
+	// GET registration options from the endpoint that calls
+	// @simplewebauthn/server -> generateRegistrationOptions()
+
+	// Pass the options to the authenticator and wait for a response
+	// attResp = await startRegistration(await resp.json());
+
+	// Wait for the results of verification
+	// const verificationJSON = await verificationResp.json();
+
+	const { data, form } = $props();
+
+	async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
+		try {
+			return await startRegistration(res);
+		} catch (error) {
+			// Some basic error handling
+			let err = error as any;
+			if (err.name === 'InvalidStateError') {
+				console.log('Error: Authenticator was probably already registered by user');
+			} else {
+				console.log(error);
+			}
+			throw error;
+		}
+	}
 
 	// Bad redirect model ????
-	const { data } = $props();
 	$effect(() => {
 		if (!data.user) {
 			goto('/');
@@ -20,7 +49,29 @@
 			<h4 class="text-h4 text-slate-300">Turvallinen tapa kirjautua</h4>
 		</div>
 		<div class="w-full flex flex-col gap-3 items-center">
-			<form>
+			<form
+				method="GET"
+				onsubmit={async (e) => {
+					e.preventDefault();
+
+					const res = await fetch('/api/auth/webpasskey/generate');
+					const r = await handleClientRegistration(await res.json());
+					const verificationResp = await fetch('/api/auth/webpasskey/verify', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(r)
+					});
+					const verificationJSON = await verificationResp.json();
+
+					if (verificationJSON && verificationJSON.verified) {
+						goto('/profile', {
+							invalidateAll: true
+						});
+					}
+				}}
+			>
 				<button class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50">
 					<div class="flex flex-row justify-center items-center gap-3">
 						<span><img width="30" alt="passkey-icon" src="/pass.png" /></span>

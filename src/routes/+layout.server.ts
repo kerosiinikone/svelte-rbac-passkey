@@ -24,13 +24,12 @@ export const load = async ({ cookies, locals, fetch }) => {
 				// Logout ->
 				return;
 			}
-			// ??????
-			invalidateAll();
-			return;
+			// ??????????
+			await invalidateAll();
 		} catch (e) {
 			// Logout ->
-			return;
 		}
+		return;
 	}
 
 	let verifiedAccessPayload;
