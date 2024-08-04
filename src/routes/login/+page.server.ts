@@ -10,7 +10,7 @@ import { EMAIL_ADDRESS, EMAIL_PASSWORD, JWT_SECRET } from '$env/static/private';
 import jwt from 'jsonwebtoken';
 
 export const actions = {
-	signin: async ({ request, cookies }) => {
+	signin: async ({ request, cookies, locals }) => {
 		const schema = z.string().email();
 
 		const formData = await request.formData();

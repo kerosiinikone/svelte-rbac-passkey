@@ -24,11 +24,7 @@
 					<a href="/profile">Profile</a>
 					<!-- Function or link or form submit? -->
 					<PrimaryLoginBtn>
-						<a
-							onclick={() => {
-								invalidateAll(); // A better way?
-							}}
-							href="/logout">Kirjaudu ulos</a
+						<a onclick={() => invalidateAll()} data-sveltekit-reload href="/logout">Kirjaudu ulos</a
 						>
 					</PrimaryLoginBtn>
 				{:else}

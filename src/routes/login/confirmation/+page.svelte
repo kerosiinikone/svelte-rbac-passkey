@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 
 	// Resend possibility?
+
+	const { data } = $props();
 
 	let inputs = $state(Array(6).fill('') as string[]);
 	let inputRefs = $state(Array(6).fill(null));
@@ -27,6 +30,12 @@
 		if (focusedIndex === inputs.length - 1 && inputs[focusedIndex]) {
 			focusedIndex = 0;
 			inputRefs[focusedIndex].focus();
+		}
+	});
+
+	$effect(() => {
+		if (data.user) {
+			goto('/');
 		}
 	});
 </script>

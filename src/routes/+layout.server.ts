@@ -1,3 +1,4 @@
+import { invalidateAll } from '$app/navigation';
 import { JWT_SECRET } from '$env/static/private';
 import { db } from '$lib/server/db/index.js';
 import { usersTable } from '$lib/server/db/schema.js';
@@ -7,7 +8,9 @@ import jwt from 'jsonwebtoken';
 
 // Loading data -> header updates
 
-export const load = async ({ cookies, locals }) => {
+// Make access token refresh into a global middleware for later use in both load and actions
+
+export const load = async ({ cookies, locals, fetch }) => {
 	const accessToken = cookies.get('accessToken');
 
 	if (locals.user) {
@@ -15,8 +18,19 @@ export const load = async ({ cookies, locals }) => {
 	}
 
 	if (!accessToken) {
-		// Automatic refresh with refreshToken, if not possible -> logout sequence
-		return;
+		try {
+			const res = await fetch('/api/auth/refresh');
+			if (!res.ok) {
+				// Logout ->
+				return;
+			}
+			// ??????
+			invalidateAll();
+			return;
+		} catch (e) {
+			// Logout ->
+			return;
+		}
 	}
 
 	let verifiedAccessPayload;
@@ -27,10 +41,7 @@ export const load = async ({ cookies, locals }) => {
 			exp: number;
 		};
 	} catch (e) {
-		error(500, 'Invalid token');
-	}
-
-	if (!verifiedAccessPayload) {
+		// Automatic refresh with refreshToken, if not possible -> logout sequence
 		error(500, 'Invalid token');
 	}
 
@@ -41,10 +52,11 @@ export const load = async ({ cookies, locals }) => {
 		.then((res) => res[0] ?? null);
 
 	if (!loggedInUser) {
-		return {};
+		// Automatic refresh with refreshToken, if not possible -> logout sequence
+		return;
 	}
 
-	locals.user = loggedInUser;
+	locals.user = loggedInUser.id;
 
 	// Revalidate pages to trigger a new load function ???
 

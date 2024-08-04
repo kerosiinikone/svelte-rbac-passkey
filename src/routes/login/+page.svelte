@@ -1,12 +1,19 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 
-	const { form } = $props();
+	const { form, data } = $props();
 	let isPending = $state(false);
 
 	$effect(() => {
 		if (form) {
 			isPending = false;
+		}
+	});
+
+	$effect(() => {
+		if (data.user) {
+			goto('/');
 		}
 	});
 
