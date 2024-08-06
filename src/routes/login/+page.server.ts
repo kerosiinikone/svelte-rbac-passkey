@@ -117,6 +117,10 @@ export const actions = {
 			secure: true
 		});
 
+		cookies.delete('pending_email', {
+			path: '/'
+		});
+
 		locals.user = user.id;
 
 		redirect(303, '/login/create-passkey');

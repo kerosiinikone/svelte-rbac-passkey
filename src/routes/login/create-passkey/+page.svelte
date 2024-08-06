@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { startRegistration } from '@simplewebauthn/browser';
 	import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
-	import { json } from '@sveltejs/kit';
 
 	// GET registration options from the endpoint that calls
 	// @simplewebauthn/server -> generateRegistrationOptions()
@@ -13,8 +11,6 @@
 
 	// Wait for the results of verification
 	// const verificationJSON = await verificationResp.json();
-
-	const { data, form } = $props();
 
 	async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
 		try {
@@ -31,12 +27,30 @@
 		}
 	}
 
-	// Bad redirect model ????
-	$effect(() => {
-		if (!data.user) {
-			goto('/');
+	async function handleSubmit(
+		e: SubmitEvent & {
+			currentTarget: EventTarget & HTMLFormElement;
 		}
-	});
+	) {
+		e.preventDefault();
+
+		const res = await fetch('/api/auth/passkeys/register/options');
+		if (!res.ok) {
+			// Handle error
+		}
+		const r = await handleClientRegistration(await res.json());
+		const verificationResp = await fetch('/api/auth/passkeys/register/verify', {
+			method: 'POST',
+			body: JSON.stringify(r)
+		});
+		const verificationJSON = await verificationResp.json();
+
+		if (verificationJSON && verificationJSON.verified) {
+			goto('/profile', {
+				invalidateAll: true
+			});
+		}
+	}
 </script>
 
 <div class="h-full w-full flex flex-col justify-center items-center">
@@ -49,29 +63,7 @@
 			<h4 class="text-h4 text-slate-300">Turvallinen tapa kirjautua</h4>
 		</div>
 		<div class="w-full flex flex-col gap-3 items-center">
-			<form
-				method="GET"
-				onsubmit={async (e) => {
-					e.preventDefault();
-
-					const res = await fetch('/api/auth/webpasskey/generate');
-					const r = await handleClientRegistration(await res.json());
-					const verificationResp = await fetch('/api/auth/webpasskey/verify', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify(r)
-					});
-					const verificationJSON = await verificationResp.json();
-
-					if (verificationJSON && verificationJSON.verified) {
-						goto('/profile', {
-							invalidateAll: true
-						});
-					}
-				}}
-			>
+			<form method="GET" onsubmit={handleSubmit}>
 				<button class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50">
 					<div class="flex flex-row justify-center items-center gap-3">
 						<span><img width="30" alt="passkey-icon" src="/pass.png" /></span>

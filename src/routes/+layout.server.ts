@@ -2,7 +2,7 @@ import { invalidateAll } from '$app/navigation';
 import { JWT_SECRET } from '$env/static/private';
 import { db } from '$lib/server/db/index.js';
 import { usersTable } from '$lib/server/db/schema.js';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
@@ -22,33 +22,31 @@ export const load = async ({ cookies, locals, fetch }) => {
 			const res = await fetch('/api/auth/refresh');
 			if (!res.ok) {
 				// Logout ->
+			}
+			const newAccessToken = cookies.get('accessToken');
+
+			if (!newAccessToken) {
+				// Logout
 				return;
 			}
-			// ??????????
-			await invalidateAll();
+
+			const loggedInUser = await verifyAndFetchUser(newAccessToken);
+
+			if (!loggedInUser) {
+				// Automatic refresh with refreshToken, if not possible -> logout sequence
+				return;
+			}
+
+			locals.user = loggedInUser.id;
+
+			return { user: locals.user };
 		} catch (e) {
 			// Logout ->
 		}
 		return;
 	}
 
-	let verifiedAccessPayload;
-
-	try {
-		verifiedAccessPayload = jwt.verify(accessToken, JWT_SECRET) as {
-			id: string;
-			exp: number;
-		};
-	} catch (e) {
-		// Automatic refresh with refreshToken, if not possible -> logout sequence
-		error(500, 'Invalid token');
-	}
-
-	const loggedInUser = await db
-		.select()
-		.from(usersTable)
-		.where(eq(usersTable.id, verifiedAccessPayload.id))
-		.then((res) => res[0] ?? null);
+	const loggedInUser = await verifyAndFetchUser(accessToken);
 
 	if (!loggedInUser) {
 		// Automatic refresh with refreshToken, if not possible -> logout sequence
@@ -61,3 +59,24 @@ export const load = async ({ cookies, locals, fetch }) => {
 
 	return { user: loggedInUser };
 };
+
+// Temp: Make into a real helper func
+async function verifyAndFetchUser(accessToken: string) {
+	let verifiedAccessPayload;
+
+	try {
+		verifiedAccessPayload = jwt.verify(accessToken, JWT_SECRET) as {
+			id: string;
+			exp: number;
+		};
+	} catch (e) {
+		// Automatic refresh with refreshToken, if not possible -> logout sequence
+		error(500, 'Invalid token');
+	}
+
+	return await db
+		.select()
+		.from(usersTable)
+		.where(eq(usersTable.id, verifiedAccessPayload.id))
+		.then((res) => res[0] ?? null);
+}

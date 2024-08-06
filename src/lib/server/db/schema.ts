@@ -2,6 +2,7 @@ import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	serial,
@@ -58,7 +59,17 @@ export const webPasskeyTable = pgTable(
 
 export const userPasskeyOptions = pgTable('passkeyOptions', {
 	id: text('id').primaryKey().notNull(),
-	options: text('options').notNull(),
+	challenge: text('challenge').notNull(),
+	webauthnUserId: text('webauthn_user_id').notNull(),
+	userId: text('usedId')
+		.notNull()
+		.references(() => usersTable.id),
+	created_at: timestamp('created_at', { mode: 'date' }).notNull().defaultNow()
+});
+
+export const userAuthOptions = pgTable('authOptions', {
+	id: text('id').primaryKey().notNull(),
+	challenge: text('challenge').notNull(),
 	userId: text('usedId')
 		.notNull()
 		.references(() => usersTable.id),

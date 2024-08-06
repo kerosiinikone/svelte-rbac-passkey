@@ -39,14 +39,12 @@ export const POST = async ({ cookies, request }) => {
 		.where(eq(userPasskeyOptions.userId, user.id))
 		.then((res) => res[0] ?? null);
 
-	const options = JSON.parse(latestOption.options);
-
 	let verification;
 
 	try {
 		verification = await verifyRegistrationResponse({
 			response: await req.json(),
-			expectedChallenge: options.challenge,
+			expectedChallenge: latestOption.challenge,
 			expectedOrigin: ORIGIN,
 			expectedRPID: 'localhost'
 		});
@@ -54,21 +52,35 @@ export const POST = async ({ cookies, request }) => {
 		error(400);
 	}
 
-	const arr = new Uint8Array(verification.registrationInfo?.credentialPublicKey!);
-	const decoder = new TextDecoder();
-	const credentialPublicKeyString = decoder.decode(arr);
+	const base64Data = Buffer.from(verification.registrationInfo?.credentialPublicKey!).toString(
+		'base64'
+	);
 
 	await db.insert(webPasskeyTable).values({
-		credPublicKey: credentialPublicKeyString,
+		credPublicKey: base64Data,
 		credId: verification.registrationInfo?.credentialID!,
 		internalUserId: user.id,
-		webauthnUserId: options.user.id,
+		webauthnUserId: latestOption.webauthnUserId,
 		counter: verification.registrationInfo?.counter!,
 		backupStatus: verification.registrationInfo?.credentialBackedUp!
 	});
 
-	if (verification.verified) {
+	if (verification.verified && verification.registrationInfo) {
 		// Set user status to verified!
+		await db
+			.update(usersTable)
+			.set({
+				verified: true
+			})
+			.where(eq(usersTable.id, user.id));
+
+		// Clean up the db
+		await db.delete(userPasskeyOptions).where(eq(userPasskeyOptions.id, latestOption.id));
+
+		// Add the returned device to the user's list of devices
+		// Keep a table of devices in a one-to-many relationship between users and devices
+	} else {
+		error(400, 'Verification failed!');
 	}
 
 	return json(verification);

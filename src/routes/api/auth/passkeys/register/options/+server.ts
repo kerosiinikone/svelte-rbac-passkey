@@ -27,35 +27,40 @@ export const GET = async ({ cookies }) => {
 		.where(eq(usersTable.id, verifiedAccessPayload.id))
 		.then((res) => res[0] ?? null);
 
+	if (!user) {
+		// Logout
+		error(500, 'Invalid token');
+	}
+
 	const userPasskeys = await db
 		.select({
 			key: webPasskeyTable.credId
 		})
 		.from(webPasskeyTable)
 		.leftJoin(usersTable, eq(usersTable.id, webPasskeyTable.internalUserId))
-		.where(eq(usersTable.id, verifiedAccessPayload.id));
+		.where(eq(usersTable.id, user.id));
 
 	const options = await generateRegistrationOptions({
 		rpName: 'Svelte Demo', // Example
-		rpID: 'localhost',
+		rpID: 'localhost', // Make into env vars
 		userName: user.email,
 		attestationType: 'none',
 		excludeCredentials: userPasskeys.map((passkey) => ({
 			id: passkey.key
 		})),
 		authenticatorSelection: {
-			residentKey: 'preferred',
-			userVerification: 'preferred',
-			authenticatorAttachment: 'cross-platform'
-		}
+			residentKey: 'discouraged',
+			userVerification: 'preferred'
+		},
+		supportedAlgorithmIDs: [-7, -257]
 	});
 
-	// Remember options for user
-	// Save options to a database table pointing to a user
+	// Could also be saved in the session object, but I'm not using sessions
 	await db.insert(userPasskeyOptions).values({
+		challenge: options.challenge,
 		id: crypto.randomUUID(),
-		options: JSON.stringify(options),
-		userId: user.id
+		userId: user.id,
+		webauthnUserId: options.user.id
 	});
 
 	return json(options);

@@ -1,23 +1,59 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { startAuthentication } from '@simplewebauthn/browser';
+	import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
 
-	const { form, data } = $props();
+	const { form } = $props();
 	let isPending = $state(false);
+
+	async function handleClientAuthentication(res: PublicKeyCredentialRequestOptionsJSON) {
+		try {
+			return await startAuthentication(res);
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
+	async function handleSubmit(
+		e: SubmitEvent & {
+			currentTarget: EventTarget & HTMLFormElement;
+		}
+	) {
+		e.preventDefault();
+
+		const res = await fetch('/api/auth/passkeys/authenticate/options');
+		if (!res.ok) {
+			// Handle error
+		}
+
+		// Challenge is safe to be revealed to the client side
+		const challenge = res.headers.get('challenge') as string;
+
+		const r = await handleClientAuthentication(await res.json());
+
+		const verificationResp = await fetch('/api/auth/passkeys/authenticate/verify', {
+			method: 'POST',
+			headers: {
+				challenge: challenge
+			},
+			body: JSON.stringify(r)
+		});
+
+		const verificationJSON = await verificationResp.json();
+
+		if (verificationJSON && verificationJSON.verified) {
+			goto('/profile', {
+				invalidateAll: true
+			});
+		}
+	}
 
 	$effect(() => {
 		if (form) {
 			isPending = false;
 		}
 	});
-
-	$effect(() => {
-		if (data.user) {
-			goto('/');
-		}
-	});
-
-	$inspect(form);
 </script>
 
 <div class="h-full w-full flex flex-col justify-center items-center">
@@ -62,12 +98,14 @@
 			><span class="w-[100px] border-t-2 border-slate-150"></span>
 		</div>
 		<div class="w-[350px]">
-			<button class="w-full py-2 px-10 rounded-2xl border-yellow-100 border-2">
-				<div class="flex flex-row justify-center items-center gap-3">
-					<span><img width="30" alt="passkey-icon" src="/pass.png" /></span>
-					Kirjaudu pääsyavaimella
-				</div>
-			</button>
+			<form method="GET" onsubmit={handleSubmit}>
+				<button class="w-full py-2 px-10 rounded-2xl border-yellow-100 border-2">
+					<div class="flex flex-row justify-center items-center gap-3">
+						<span><img width="30" alt="passkey-icon" src="/pass.png" /></span>
+						Kirjaudu pääsyavaimella
+					</div>
+				</button>
+			</form>
 		</div>
 	</div>
 </div>
