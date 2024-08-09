@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { startRegistration } from '@simplewebauthn/browser';
 	import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
 
@@ -27,16 +27,13 @@
 		}
 	}
 
-	async function handleSubmit(
-		e: SubmitEvent & {
-			currentTarget: EventTarget & HTMLFormElement;
-		}
-	) {
+	async function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		e.preventDefault();
 
 		const res = await fetch('/api/auth/passkeys/register/options');
 		if (!res.ok) {
 			// Handle error
+			return;
 		}
 		const r = await handleClientRegistration(await res.json());
 		const verificationResp = await fetch('/api/auth/passkeys/register/verify', {
@@ -46,6 +43,7 @@
 		const verificationJSON = await verificationResp.json();
 
 		if (verificationJSON && verificationJSON.verified) {
+			invalidate('/profile');
 			goto('/profile', {
 				invalidateAll: true
 			});
@@ -63,14 +61,15 @@
 			<h4 class="text-h4 text-slate-300">Turvallinen tapa kirjautua</h4>
 		</div>
 		<div class="w-full flex flex-col gap-3 items-center">
-			<form method="GET" onsubmit={handleSubmit}>
-				<button class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50">
-					<div class="flex flex-row justify-center items-center gap-3">
-						<span><img width="30" alt="passkey-icon" src="/pass.png" /></span>
-						Luo pääsyavain
-					</div>
-				</button>
-			</form>
+			<button
+				onclick={handleClick}
+				class="w-full py-2 px-10 rounded-2xl bg-gradient-to-r from-yellow-100 to-yellow-50"
+			>
+				<div class="flex flex-row justify-center items-center gap-3">
+					<span><img width="30" alt="passkey-icon" src="/pass.png" /></span>
+					Luo pääsyavain
+				</div>
+			</button>
 			<a href="/profile" class="text-slate-300 font-light">Ohita</a>
 		</div>
 	</div>

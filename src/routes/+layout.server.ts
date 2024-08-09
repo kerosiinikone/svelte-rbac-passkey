@@ -1,8 +1,7 @@
-import { invalidateAll } from '$app/navigation';
 import { JWT_SECRET } from '$env/static/private';
 import { db } from '$lib/server/db/index.js';
 import { usersTable } from '$lib/server/db/schema.js';
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
@@ -57,7 +56,7 @@ export const load = async ({ cookies, locals, fetch }) => {
 
 	// Revalidate pages to trigger a new load function ???
 
-	return { user: loggedInUser };
+	return { user: loggedInUser.id };
 };
 
 // Temp: Make into a real helper func

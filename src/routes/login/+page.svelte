@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { startAuthentication } from '@simplewebauthn/browser';
 	import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
 
@@ -40,9 +40,15 @@
 			body: JSON.stringify(r)
 		});
 
+		if (!verificationResp.ok) {
+			// Logout
+			return;
+		}
+
 		const verificationJSON = await verificationResp.json();
 
 		if (verificationJSON && verificationJSON.verified) {
+			invalidate('/profile');
 			goto('/profile', {
 				invalidateAll: true
 			});

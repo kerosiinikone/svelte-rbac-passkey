@@ -9,7 +9,14 @@ import jwt from 'jsonwebtoken';
 const ORIGIN = `http://localhost:5173`;
 
 export const POST = async ({ request, cookies }) => {
-	const body = await request.json();
+	let body;
+
+	// Necessary?
+	try {
+		body = await request.json();
+	} catch (e) {
+		error(500);
+	}
 	const challenge = request.headers.get('challenge') as string;
 
 	const userPasskey = await db
@@ -50,7 +57,7 @@ export const POST = async ({ request, cookies }) => {
 			.then((res) => res[0] ?? null);
 
 		if (!verifiedUser) {
-			// Logout
+			error(400, 'No user found');
 		}
 
 		const accessPayload = {
@@ -77,9 +84,9 @@ export const POST = async ({ request, cookies }) => {
 			httpOnly: true,
 			secure: true
 		});
+
+		return json(verification);
 	} else {
 		error(400, 'Verification failed!');
 	}
-
-	return json(verification);
 };

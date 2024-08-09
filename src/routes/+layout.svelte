@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import '../app.css';
-	import PrimaryLoginBtn from '../components/PrimaryLoginBtn.svelte';
+	import PrimaryAuthBtn from '../components/PrimaryAuthBtn.svelte';
 
 	const { children, data } = $props();
 </script>
@@ -23,11 +23,11 @@
 				{#if data.user}
 					<a href="/profile">Profile</a>
 					<!-- Function or link or form submit? -->
-					<PrimaryLoginBtn>
+					<PrimaryAuthBtn>
 						<a onclick={() => invalidateAll()} href="/logout">Kirjaudu ulos</a>
-					</PrimaryLoginBtn>
+					</PrimaryAuthBtn>
 				{:else}
-					<PrimaryLoginBtn><a href="/login">Kirjaudu</a></PrimaryLoginBtn>
+					<PrimaryAuthBtn><a href="/login">Kirjaudu</a></PrimaryAuthBtn>
 				{/if}
 
 				<!--  -->

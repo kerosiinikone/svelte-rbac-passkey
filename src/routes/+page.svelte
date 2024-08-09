@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Welcome
-	import PrimaryLoginBtn from '../components/PrimaryLoginBtn.svelte';
+	import PrimaryLoginBtn from '../components/PrimaryAuthBtn.svelte';
 </script>
 
 <div class="h-full w-full flex flex-col justify-center items-center">

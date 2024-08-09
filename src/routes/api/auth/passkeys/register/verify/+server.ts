@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 const ORIGIN = `http://localhost:5173`;
 
 export const POST = async ({ cookies, request }) => {
-	const req = request.clone();
+	const body = await request.json();
 	const accessToken = cookies.get('accessToken');
 
 	let verifiedAccessPayload;
@@ -43,7 +43,7 @@ export const POST = async ({ cookies, request }) => {
 
 	try {
 		verification = await verifyRegistrationResponse({
-			response: await req.json(),
+			response: body,
 			expectedChallenge: latestOption.challenge,
 			expectedOrigin: ORIGIN,
 			expectedRPID: 'localhost'
@@ -66,14 +66,6 @@ export const POST = async ({ cookies, request }) => {
 	});
 
 	if (verification.verified && verification.registrationInfo) {
-		// Set user status to verified!
-		await db
-			.update(usersTable)
-			.set({
-				verified: true
-			})
-			.where(eq(usersTable.id, user.id));
-
 		// Clean up the db
 		await db.delete(userPasskeyOptions).where(eq(userPasskeyOptions.id, latestOption.id));
 

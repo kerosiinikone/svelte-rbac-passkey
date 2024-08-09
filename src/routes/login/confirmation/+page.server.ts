@@ -65,6 +65,14 @@ export const actions = {
 			fail(400);
 		}
 
+		// Set user as verified
+		await db
+			.update(usersTable)
+			.set({
+				verified: true
+			})
+			.where(eq(usersTable.id, user.id));
+
 		// Set cookies, log in, etc
 		const accessPayload = {
 			id: user.id
