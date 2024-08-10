@@ -19,6 +19,19 @@ export const usersTable = pgTable(
 	}
 );
 
+export const itemsTable = pgTable(
+	'items',
+	{
+		id: text('id').primaryKey(),
+		role: roleEnum('role').$type<Roles>().notNull()
+	},
+	(table) => {
+		return {
+			role: index('item_role_idx').on(table.role)
+		};
+	}
+);
+
 export const webPasskeyTable = pgTable(
 	'webPasskeys',
 	{
