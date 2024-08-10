@@ -1,21 +1,5 @@
-import {
-	boolean,
-	index,
-	integer,
-	jsonb,
-	pgEnum,
-	pgTable,
-	serial,
-	text,
-	timestamp,
-	uuid
-} from 'drizzle-orm/pg-core';
-
-export enum Roles {
-	DEFAULT = 'DEFAULT',
-	PREMIUM = 'PREMIUM',
-	ADMIN = 'ADMIN'
-}
+import type { Roles } from '$lib/types';
+import { boolean, index, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const roleEnum = pgEnum('role', ['DEFAULT', 'PREMIUM', 'ADMIN']);
 

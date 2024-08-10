@@ -4,8 +4,11 @@
 	import { startRegistration } from '@simplewebauthn/browser';
 	import PrimaryAuthBtn from '../../components/PrimaryAuthBtn.svelte';
 	import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
+	import { Roles } from '$lib/types';
 
 	const { data } = $props();
+
+	let role: Roles = $state(data.user.role);
 
 	async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
 		try {
@@ -40,6 +43,11 @@
 				invalidateAll: true
 			});
 		}
+	}
+
+	// Loading spinner?
+	function handleRoleSwitch(r: Roles) {
+		role = r;
 	}
 </script>
 
@@ -89,9 +97,45 @@
 				{data.user.email}
 			</h4>
 		</div>
-		<div id="role-section" class="w-full flex flex-col gap-2 justify-center">
+		<div id="role-section" class="w-full flex flex-col gap-5 justify-center">
 			<h4 class="text-h4 font-semibold">Roolit</h4>
-			<p>Role selector</p>
+			<form
+				method="POST"
+				action="?/switchRole"
+				use:enhance={({ submitter, formData }) => {
+					switch (submitter?.getAttribute('name') as Roles) {
+						case Roles.DEFAULT:
+							formData.append('role', Roles.DEFAULT);
+							break;
+						case Roles.PREMIUM:
+							formData.append('role', Roles.PREMIUM);
+							break;
+						default:
+							break;
+					}
+					return () => {
+						invalidate('/');
+					};
+				}}
+				class="flex flex-row gap-4"
+			>
+				<button
+					name={Roles.DEFAULT}
+					type="submit"
+					onclick={() => handleRoleSwitch(Roles.DEFAULT)}
+					class={role === Roles.DEFAULT
+						? 'py-2 px-5 bg-slate-100 rounded-lg border-2 border-slate-300'
+						: 'py-2 px-5 bg-slate-50 rounded-lg'}>Tavallinen</button
+				>
+				<button
+					name={Roles.PREMIUM}
+					type="submit"
+					onclick={() => handleRoleSwitch(Roles.PREMIUM)}
+					class={role === Roles.PREMIUM
+						? 'py-2 px-5 bg-slate-100 rounded-lg border-2 border-slate-300'
+						: 'py-2 px-5 bg-slate-50 rounded-lg'}>Premium</button
+				>
+			</form>
 		</div>
 		<div id="passkey-section" class="w-full flex flex-col gap-4 justify-center">
 			<h4 class="text-h4 font-semibold">Pääsyavaimet</h4>
