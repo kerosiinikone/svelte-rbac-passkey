@@ -36,14 +36,14 @@ export const actions = {
 		const timeDiff = Math.abs(new Date().getTime() - code.created_at.getTime());
 
 		if (timeDiff >= CODE_TIMEOUT) {
-			fail(400);
+			error(400);
 		}
 
 		// Compare codes
 		const isValid = await bcrypt.compare(inputCode, code.code);
 
 		if (!isValid) {
-			fail(400);
+			error(400);
 		}
 
 		// Clear cookie
@@ -62,7 +62,7 @@ export const actions = {
 			.then((res) => res[0] ?? null);
 
 		if (!user) {
-			fail(400);
+			error(400);
 		}
 
 		// Set user as verified

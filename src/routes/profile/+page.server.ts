@@ -85,7 +85,7 @@ export const actions = {
 		const result = schema.safeParse(role);
 
 		if (!result.success) {
-			fail(400);
+			error(400);
 		}
 
 		await db

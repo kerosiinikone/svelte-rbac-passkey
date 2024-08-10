@@ -16,22 +16,13 @@
 		},
 		index: number
 	) => {
-		// Set the corresponding array item to the value of the input
 		inputs[index] = event.currentTarget?.value[0] || '';
-		// If the value is not empty and the focus isn't on the last element, focus on the next element
-		if (event.currentTarget?.value && index < 5) {
+
+		if (inputs[index] && index < 5) {
 			focusedIndex = index + 1;
 			inputRefs[focusedIndex].focus();
 		}
 	};
-
-	// If the focus is on the last element, shift the focus back to the beginning (not necessary)
-	$effect(() => {
-		if (focusedIndex === inputs.length - 1 && inputs[focusedIndex]) {
-			focusedIndex = 0;
-			inputRefs[focusedIndex].focus();
-		}
-	});
 
 	$effect(() => {
 		if (data.user) {
@@ -60,6 +51,20 @@
 				<div class="flex flex-row w-full justify-between items-center">
 					{#each inputs as _, index}
 						<input
+							onkeydown={(e) => {
+								if (e.key === 'Backspace') {
+									e.preventDefault();
+									inputs[index] = '';
+									if (index > 0) {
+										focusedIndex = index - 1;
+										inputRefs[focusedIndex].focus();
+									}
+								} else if (e.currentTarget?.value && index < inputRefs.length - 1) {
+									e.preventDefault();
+									focusedIndex = index + 1;
+									inputRefs[focusedIndex].focus();
+								}
+							}}
 							bind:value={inputs[index]}
 							bind:this={inputRefs[index]}
 							oninput={(e) => handleInput(e, index)}
@@ -76,7 +81,7 @@
 					Jatka
 				</button>
 			</form>
-			<button class="text-slate-300 font-light">Lähetä uudelleen</button>
+			<button class="text-slate-300 font-light">Lähetä uudelleen (soon)</button>
 		</div>
 	</div>
 </div>

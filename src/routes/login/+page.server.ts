@@ -1,13 +1,14 @@
 import { db } from '$lib/server/db/index.js';
-import { passcodeTable, Roles, usersTable } from '$lib/server/db/schema.js';
+import { passcodeTable, usersTable } from '$lib/server/db/schema.js';
 import { createPasscode } from '$lib/server/helpers/passcode.js';
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import { EMAIL_ADDRESS, EMAIL_PASSWORD, JWT_SECRET } from '$env/static/private';
 import jwt from 'jsonwebtoken';
+import { Roles } from '$lib/types.js';
 
 export const actions = {
 	signin: async ({ request, cookies, locals }) => {
@@ -19,7 +20,7 @@ export const actions = {
 		const result = schema.safeParse(email);
 
 		if (!result.success) {
-			fail(400);
+			error(400);
 		}
 
 		// Check if the email already exists
