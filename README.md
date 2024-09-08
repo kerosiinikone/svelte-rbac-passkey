@@ -1,6 +1,7 @@
 ### TODO
 
 - Comprehensive doc (passkey logic and its implementation here)
+- Type definition into .d.ts
 - Make passkey auth work stores other than the current device
 - Use new snippets or components to represent anything that is repeated (passcode fields, items)
 - Seed the db (write a script) with items

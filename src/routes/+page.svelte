@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ItemList from '../components/ItemList.svelte';
-	import PrimaryLoginBtn from '../components/PrimaryAuthBtn.svelte';
+	import ItemList from '../lib/components/ItemList.svelte';
+	import PrimaryLoginBtn from '../lib/components/PrimaryAuthBtn.svelte';
 
 	const { data } = $props();
 </script>

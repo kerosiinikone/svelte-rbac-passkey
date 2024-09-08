@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 
 export const GET = async ({ cookies }) => {
 	const refreshToken = cookies.get('refreshToken');
+
 	if (!refreshToken) {
 		error(400);
 	}
@@ -56,20 +57,8 @@ export const GET = async ({ cookies }) => {
 	const accessToken = jwt.sign(accessPayload, JWT_SECRET);
 	const newRefreshToken = jwt.sign(refreshPayload, JWT_SECRET);
 
-	cookies.set('accessToken', accessToken, {
-		path: '/',
-		maxAge: 7 * 24 * 60 * 60 * 1000,
-		httpOnly: true,
-		secure: true
-	});
-	cookies.set('refreshToken', newRefreshToken, {
-		path: '/',
-		maxAge: 15 * 60 * 1000,
-		httpOnly: true,
-		secure: true
-	});
-
 	return json({
-		success: true
+		accessToken,
+		refreshToken: newRefreshToken
 	});
 };

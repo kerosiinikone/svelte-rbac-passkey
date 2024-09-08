@@ -10,8 +10,8 @@ const CODE_TIMEOUT = 10 * 60 * 1000;
 
 export const actions = {
 	default: async ({ request, cookies }) => {
-		const formData = await request.formData();
-		const inputCode = formData.get('code') as string;
+		const formData = Object.fromEntries(await request.formData());
+		const inputCode = formData.code as string;
 
 		// Get the email from a secure cookie
 		const email: string = JSON.parse(cookies.get('pending_email') as string);

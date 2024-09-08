@@ -9,14 +9,7 @@ import jwt from 'jsonwebtoken';
 const ORIGIN = `http://localhost:5173`;
 
 export const POST = async ({ request, cookies }) => {
-	let body;
-
-	// Necessary?
-	try {
-		body = await request.json();
-	} catch (e) {
-		error(500);
-	}
+	const body = await request.json();
 	const challenge = request.headers.get('challenge') as string;
 
 	const userPasskey = await db

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import '../app.css';
-	import PrimaryAuthBtn from '../components/PrimaryAuthBtn.svelte';
+	import PrimaryAuthBtn from '../lib/components/PrimaryAuthBtn.svelte';
 
 	const { children, data } = $props();
 </script>
@@ -24,7 +24,7 @@
 					<a href="/profile">Profile</a>
 					<!-- Function or link or form submit? -->
 					<PrimaryAuthBtn>
-						<a onclick={() => invalidateAll()} href="/logout">Kirjaudu ulos</a>
+						<a onclick={() => invalidateAll()} href="/api/auth/logout">Kirjaudu ulos</a>
 					</PrimaryAuthBtn>
 				{:else}
 					<PrimaryAuthBtn><a href="/login">Kirjaudu</a></PrimaryAuthBtn>

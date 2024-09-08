@@ -2,12 +2,11 @@
 	import { enhance } from '$app/forms';
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { startRegistration } from '@simplewebauthn/browser';
-	import PrimaryAuthBtn from '../../components/PrimaryAuthBtn.svelte';
+	import PrimaryAuthBtn from '../../lib/components/PrimaryAuthBtn.svelte';
 	import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
 	import { Roles } from '$lib/types';
 
 	const { data } = $props();
-
 	let role: Roles = $state(data.user.role);
 
 	async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
@@ -71,7 +70,7 @@
 <div class="h-full w-full flex flex-col justify-center items-center">
 	<div
 		id="dash-container"
-		class="flex flex-col border-2 gap-8 items-center border-slate-150 rounded-[80px] p-20 border-dashed gap-10"
+		class="flex flex-col border-2 items-center border-slate-150 rounded-[80px] p-20 border-dashed gap-10"
 	>
 		<div id="email-img-section" class="flex flex-row items-center jusitfy-center gap-5">
 			<span
@@ -94,7 +93,7 @@
 				></span
 			>
 			<h4 class="text-h4">
-				{data.user.email}
+				{data.user?.email}
 			</h4>
 		</div>
 		<div id="role-section" class="w-full flex flex-col gap-5 justify-center">
@@ -139,8 +138,8 @@
 		</div>
 		<div id="passkey-section" class="w-full flex flex-col gap-4 justify-center">
 			<h4 class="text-h4 font-semibold">Pääsyavaimet</h4>
-			{#if data.verifiedPasskeys.length > 0}
-				{#each data.verifiedPasskeys as passkey, i}
+			{#if data.verifiedPasskeys?.length! > 0}
+				{#each data.verifiedPasskeys! as passkey, i}
 					{@render passkeyItem(passkey, i)}
 				{/each}
 			{:else}

@@ -6,19 +6,19 @@ import { eq, or } from 'drizzle-orm';
 const premiumList = [Roles.DEFAULT, Roles.PREMIUM];
 const defaultList = [Roles.DEFAULT];
 
-export const load = async ({ parent }) => {
-	const data = await parent();
+export const load = async ({ locals }) => {
+	const user = locals.user;
 
-	if (!data.user) {
-		return;
+	if (!user) {
+		return { items: null };
 	}
 
-	// Fetch all and hide some on the client side?
+	// Fetch all and hide some on the client side -> DTO?
 
 	const { role } = await db
 		.select({ role: usersTable.role })
 		.from(usersTable)
-		.where(eq(usersTable.id, data.user))
+		.where(eq(usersTable.id, user))
 		.then((res) => res[0] ?? null);
 
 	const items = await db

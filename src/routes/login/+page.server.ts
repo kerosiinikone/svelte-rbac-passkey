@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db/index.js';
 import { passcodeTable, usersTable } from '$lib/server/db/schema.js';
-import { createPasscode } from '$lib/server/helpers/passcode.js';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { createPasscode } from '$lib/server/utils/passcode.js';
+import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
@@ -14,8 +14,8 @@ export const actions = {
 	signin: async ({ request, cookies, locals }) => {
 		const schema = z.string().email();
 
-		const formData = await request.formData();
-		const email = formData.get('email') as string;
+		const formData = Object.fromEntries(await request.formData());
+		const email = formData.email as string;
 
 		const result = schema.safeParse(email);
 
@@ -84,14 +84,6 @@ export const actions = {
 			})
 			.returning()
 			.then((res) => res[0]);
-
-		// Set cookies and log the user in
-
-		/* 
-			Sign the cookies with the user id (maybe passkey?)
-			Set them securely
-			Redirect the user
-		*/
 
 		const accessPayload = {
 			id: user.id
