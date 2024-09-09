@@ -5,8 +5,8 @@ import { error, json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
-export const GET = async ({ cookies }) => {
-	const refreshToken = cookies.get('refreshToken');
+export const POST = async ({ request }) => {
+	const refreshToken: string = await request.json();
 
 	if (!refreshToken) {
 		error(400);

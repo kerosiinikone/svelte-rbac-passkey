@@ -1,30 +1,26 @@
 import { JWT_SECRET } from '$env/static/private';
 import { db } from '$lib/server/db';
 import { usersTable } from '$lib/server/db/schema';
-import { error, type Cookies, type RequestEvent } from '@sveltejs/kit';
+import { type Cookies } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
-
-type User = {
-	id: string;
-};
 
 interface TokenResponse {
 	accessToken: string;
 	refreshToken: string;
 }
 
+type User = {
+	id: string;
+};
+
 const protectedRoutes = ['/', '/profile'];
 
 export async function handle({ event, resolve }) {
 	const accessToken = event.cookies.get('accessToken');
 
-	if (protectedRouteMatcher(event, protectedRoutes)) {
-		const user: User | null = await verifyAndFetchUser(
-			accessToken ?? '',
-			event.cookies,
-			event.fetch
-		);
+	if (protectedRouteMatcher(event.url.pathname, protectedRoutes)) {
+		const user: User | null = await verifyAndFetchUser(accessToken ?? '', event.cookies);
 		if (!user) {
 			logout(event.cookies, event.locals);
 		} else {
@@ -36,31 +32,80 @@ export async function handle({ event, resolve }) {
 	return response;
 }
 
-function protectedRouteMatcher(
-	e: RequestEvent<Partial<Record<string, string>>, string | null>,
-	routes: string[]
-): boolean {
-	return routes.some((r) => e.url.pathname.startsWith(r));
-}
+const protectedRouteMatcher = (path: string, routes: string[]): boolean =>
+	routes.some((r) => path.startsWith(r));
 
-async function fetchToken(f: (...args: any) => Promise<Response>): Promise<TokenResponse> {
-	const res = await f('/api/auth/refresh');
-	if (!res.ok) {
-		error(res.status);
+async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
+	let verifiedRefreshPayload;
+
+	try {
+		verifiedRefreshPayload = jwt.verify(refreshToken, JWT_SECRET) as {
+			id: string;
+			version: number;
+			exp: number;
+		};
+	} catch (e) {
+		return null;
 	}
-	return res.json() as Promise<TokenResponse>;
+
+	// Update token version??
+	const user = await db
+		.select({
+			version: usersTable.token_version,
+			id: usersTable.id,
+			token_version: usersTable.token_version
+		})
+		.from(usersTable)
+		.where(eq(usersTable.id, verifiedRefreshPayload.id))
+		.then((res) => res[0] ?? null);
+
+	if (!user) {
+		return null;
+	}
+
+	if (verifiedRefreshPayload.version !== user.version) {
+		return null;
+	}
+
+	// Sign new tokens
+	const accessPayload = {
+		id: user.id
+	};
+
+	const refreshPayload = {
+		id: user.id,
+		version: user.token_version
+	};
+
+	const accessToken = jwt.sign(accessPayload, JWT_SECRET);
+	const newRefreshToken = jwt.sign(refreshPayload, JWT_SECRET);
+
+	return {
+		accessToken,
+		refreshToken: newRefreshToken
+	};
 }
 
-async function refresh(
-	cookies: Cookies,
-	f: (input: string | URL | globalThis.Request, init?: RequestInit) => Promise<Response>
-): Promise<User | null> {
+async function refresh(cookies: Cookies): Promise<User | null> {
 	const initialRefreshToken = cookies.get('refreshToken');
 
 	if (!initialRefreshToken) return null;
 
+	const tokenSet = await getTokens(initialRefreshToken);
+
+	if (!tokenSet) return null;
+
+	const { accessToken, refreshToken } = tokenSet;
+
 	try {
-		const { refreshToken, accessToken } = await fetchToken(f);
+		const loggedInUser = jwt.verify(accessToken, JWT_SECRET) as {
+			id: string;
+			exp: number;
+		};
+
+		if (!loggedInUser.id) {
+			return null;
+		}
 
 		cookies.set('accessToken', accessToken, {
 			path: '/',
@@ -75,26 +120,13 @@ async function refresh(
 			secure: true
 		});
 
-		const loggedInUser = jwt.verify(accessToken, JWT_SECRET) as {
-			id: string;
-			exp: number;
-		};
-
-		if (!loggedInUser.id) {
-			return null;
-		}
-
 		return { id: loggedInUser.id };
 	} catch (e) {
 		return null;
 	}
 }
 
-async function verifyAndFetchUser(
-	accessToken: string,
-	cookies: Cookies,
-	f: (input: string | URL | globalThis.Request, init?: RequestInit) => Promise<Response>
-): Promise<User | null> {
+async function verifyAndFetchUser(accessToken: string, cookies: Cookies): Promise<User | null> {
 	let verifiedAccessPayload;
 
 	try {
@@ -103,7 +135,7 @@ async function verifyAndFetchUser(
 			exp: number;
 		};
 	} catch (e) {
-		return await refresh(cookies, f);
+		return await refresh(cookies);
 	}
 
 	const fetchedUser = await db
