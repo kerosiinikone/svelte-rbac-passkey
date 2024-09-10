@@ -8,7 +8,11 @@
 
 <div class="h-screen w-screen flex flex-col items-center bg-slate-100">
 	<div class="flex flex-row justify-center items-center w-full h-16 bg-black">
-		<h3 class="text-white">🎉 Kirjaudu sisään</h3>
+		{#if !data.user}
+			<h3 class="text-white">🎉 Kirjaudu sisään</h3>
+		{:else}
+			<h3 class="text-white">🎉 RBAC</h3>
+		{/if}
 	</div>
 	<div
 		id="container"

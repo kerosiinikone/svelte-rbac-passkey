@@ -6,7 +6,6 @@
 		items
 	}: {
 		items: {
-			id: string;
 			role: Roles;
 		}[];
 	} = $props();

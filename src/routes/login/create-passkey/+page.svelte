@@ -43,7 +43,6 @@
 		const verificationJSON = await verificationResp.json();
 
 		if (verificationJSON && verificationJSON.verified) {
-			invalidate('/profile');
 			goto('/profile', {
 				invalidateAll: true
 			});

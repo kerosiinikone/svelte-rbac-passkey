@@ -1,6 +1,12 @@
 import type { Roles } from '$lib/types';
 import { boolean, index, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
+export type PasskeyRow = typeof webPasskeyTable.$inferSelect;
+
+export type ItemRow = typeof itemsTable.$inferSelect;
+
+export type UserRow = typeof usersTable.$inferSelect;
+
 export const roleEnum = pgEnum('role', ['DEFAULT', 'PREMIUM', 'ADMIN']);
 
 export const usersTable = pgTable(

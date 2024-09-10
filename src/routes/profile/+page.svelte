@@ -3,17 +3,26 @@
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { startRegistration } from '@simplewebauthn/browser';
 	import PrimaryAuthBtn from '../../lib/components/PrimaryAuthBtn.svelte';
-	import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
+	import type { VerifiedRegistrationResponse } from '@simplewebauthn/server';
+	import type {
+		PublicKeyCredentialCreationOptionsJSON,
+		RegistrationResponseJSON
+	} from '@simplewebauthn/types';
 	import { Roles } from '$lib/types';
+	import { createCaller } from '$lib/api/request';
 
 	const { data } = $props();
 	let role: Roles = $state(data.user.role);
 
-	async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
+	const apiFetch = createCaller(fetch);
+
+	async function handleClientRegistration(
+		res: PublicKeyCredentialCreationOptionsJSON
+	): Promise<RegistrationResponseJSON> {
 		try {
 			return await startRegistration(res);
 		} catch (error) {
-			// Some basic error handling
+			// TODO: CUSTOM ERRORS
 			let err = error as any;
 			if (err.name === 'InvalidStateError') {
 				console.log('Error: Authenticator was probably already registered by user');
@@ -24,20 +33,21 @@
 		}
 	}
 
-	async function handleClick(_: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		const res = await fetch('/api/auth/passkeys/register/options');
-		if (!res.ok) {
-			return;
-		}
-		const r = await handleClientRegistration(await res.json());
-		const verificationResp = await fetch('/api/auth/passkeys/register/verify', {
-			method: 'POST',
-			body: JSON.stringify(r)
-		});
-		const verificationJSON = await verificationResp.json();
+	async function handleClick(
+		_: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	): Promise<void> {
+		const res = await apiFetch<PublicKeyCredentialCreationOptionsJSON>(
+			'/api/auth/passkeys/register/options'
+		);
+		const r = await handleClientRegistration(res);
 
-		if (verificationJSON && verificationJSON.verified) {
-			invalidate('/profile');
+		const verificationResp = await apiFetch<VerifiedRegistrationResponse>(
+			'/api/auth/passkeys/register/verify',
+			'POST',
+			{ body: JSON.stringify(r) }
+		);
+
+		if (verificationResp && verificationResp.verified) {
 			goto('/profile', {
 				invalidateAll: true
 			});
@@ -53,12 +63,12 @@
 <!-- Edit here -> remember to add a confirm delete prompt -->
 {#snippet passkeyItem(passkey: any, _: number)}
 	<div>
-		<p>{passkey.credId}</p>
+		<p>{passkey.id}</p>
 		<p class="text-slate-200">{passkey.createdAt.toLocaleString()}</p>
 		<form
 			method="POST"
 			use:enhance={({ formData }) => {
-				formData.append('pid', passkey.credId);
+				formData.append('pid', passkey.id);
 			}}
 			action="?/deletePasskey"
 		>
@@ -93,7 +103,7 @@
 				></span
 			>
 			<h4 class="text-h4">
-				{data.user?.email}
+				{data.user?.name}
 			</h4>
 		</div>
 		<div id="role-section" class="w-full flex flex-col gap-5 justify-center">
@@ -139,7 +149,7 @@
 		<div id="passkey-section" class="w-full flex flex-col gap-4 justify-center">
 			<h4 class="text-h4 font-semibold">Pääsyavaimet</h4>
 			{#if data.verifiedPasskeys?.length! > 0}
-				{#each data.verifiedPasskeys! as passkey, i}
+				{#each data.verifiedPasskeys as passkey, i}
 					{@render passkeyItem(passkey, i)}
 				{/each}
 			{:else}
@@ -163,7 +173,7 @@
 		</div>
 		<div id="logout-btn-section" class="w-full flex flex-col gap-2 items-center justify-center">
 			<PrimaryAuthBtn extraClass="w-full">
-				<a onclick={() => invalidateAll()} href="/logout">Kirjaudu ulos</a>
+				<a onclick={() => invalidateAll()} href="/api/auth/logout">Kirjaudu ulos</a>
 			</PrimaryAuthBtn>
 		</div>
 	</div>

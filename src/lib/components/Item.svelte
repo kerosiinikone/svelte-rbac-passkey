@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Roles } from '$lib/types';
 
-	const { item }: { item: { id: string; role: Roles } } = $props();
+	const { item }: { item: { role: Roles } } = $props();
 </script>
 
 <div class="flex flex-col justify-around p-6 h-64 w-64 shrink rounded-xl border-2">

@@ -1,31 +1,20 @@
+import { invalidate, invalidateAll } from '$app/navigation';
 import { db } from '$lib/server/db/index.js';
 import { usersTable, webPasskeyTable } from '$lib/server/db/schema.js';
+import { getUserById, getUserPasskeys } from '$lib/server/operations';
+import { presentPasskeys, presentUser } from '$lib/server/utils/dto.js';
 import { Roles } from '$lib/types.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export const load = async ({ locals }) => {
-	if (!locals.user) {
-		redirect(301, '/');
-	}
+	if (!locals.user) redirect(301, '/');
 
-	const fetchedUser = await db
-		.select({
-			email: usersTable.email,
-			verified: usersTable.verified,
-			role: usersTable.role
-		})
-		.from(usersTable)
-		.where(eq(usersTable.id, locals.user))
-		.then((res) => res[0] ?? null);
+	const fetchedUser = await getUserById(locals.user);
+	const userPasskeys = await getUserPasskeys(locals.user);
 
-	const userPasskeys = await db
-		.select()
-		.from(webPasskeyTable)
-		.where(eq(webPasskeyTable.internalUserId, locals.user));
-
-	return { user: fetchedUser, verifiedPasskeys: userPasskeys };
+	return { user: presentUser(fetchedUser!), verifiedPasskeys: presentPasskeys(userPasskeys) };
 };
 
 export const actions = {
@@ -33,6 +22,7 @@ export const actions = {
 		const schema = z.string();
 
 		const formData = Object.fromEntries(await request.formData());
+
 		const pid = formData.pid as string;
 
 		const result = schema.safeParse(pid);

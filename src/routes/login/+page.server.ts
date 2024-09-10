@@ -9,6 +9,10 @@ import nodemailer from 'nodemailer';
 import { EMAIL_ADDRESS, EMAIL_PASSWORD, JWT_SECRET } from '$env/static/private';
 import jwt from 'jsonwebtoken';
 import { Roles } from '$lib/types.js';
+import { User } from '$lib/server/models/user/index.js';
+import { createUser } from '$lib/server/operations';
+import { saveUser } from '$lib/server/utils/dto.js';
+import { setCookies, type CookieParameters } from '$lib/server/utils/auth.js';
 
 export const actions = {
 	signin: async ({ request, cookies, locals }) => {
@@ -74,47 +78,34 @@ export const actions = {
 			redirect(303, '/login/confirmation');
 		}
 
-		// If it doesn't, register a new account, prompt the user to add a passkey
-		const user = await db
-			.insert(usersTable)
-			.values({
-				id: crypto.randomUUID(),
-				email,
-				role: Roles.DEFAULT
-			})
-			.returning()
-			.then((res) => res[0]);
+		const user = new User(crypto.randomUUID(), Roles.DEFAULT, email, false);
+
+		await createUser(saveUser(user));
 
 		const accessPayload = {
-			id: user.id
+			id: user.getId()
 		};
 
 		const refreshPayload = {
-			id: user.id,
-			version: user.token_version
+			id: user.getId(),
+			version: user.getTokenVersion()
 		};
 
 		const accessToken = jwt.sign(accessPayload, JWT_SECRET);
 		const refreshToken = jwt.sign(refreshPayload, JWT_SECRET);
 
-		cookies.set('accessToken', accessToken, {
-			path: '/',
-			maxAge: 7 * 24 * 60 * 60 * 1000,
-			httpOnly: true,
-			secure: true
-		});
-		cookies.set('refreshToken', refreshToken, {
-			path: '/',
-			maxAge: 15 * 60 * 1000,
-			httpOnly: true,
-			secure: true
-		});
+		const cookieList: CookieParameters[] = [
+			{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
+			{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
+		];
+
+		setCookies(cookies, cookieList);
 
 		cookies.delete('pending_email', {
 			path: '/'
 		});
 
-		locals.user = user.id;
+		locals.user = user.getId();
 
 		redirect(303, '/login/create-passkey');
 	}

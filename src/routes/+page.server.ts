@@ -1,10 +1,5 @@
-import { db } from '$lib/server/db/index.js';
-import { itemsTable, usersTable } from '$lib/server/db/schema.js';
-import { Roles } from '$lib/types.js';
-import { eq, or } from 'drizzle-orm';
-
-const premiumList = [Roles.DEFAULT, Roles.PREMIUM];
-const defaultList = [Roles.DEFAULT];
+import { getUserRole, getItemsByRole } from '$lib/server/operations';
+import { presentItems } from '$lib/server/utils/dto.js';
 
 export const load = async ({ locals }) => {
 	const user = locals.user;
@@ -13,28 +8,8 @@ export const load = async ({ locals }) => {
 		return { items: null };
 	}
 
-	// Fetch all and hide some on the client side -> DTO?
+	const role = await getUserRole(user);
+	const items = await getItemsByRole(role);
 
-	const { role } = await db
-		.select({ role: usersTable.role })
-		.from(usersTable)
-		.where(eq(usersTable.id, user))
-		.then((res) => res[0] ?? null);
-
-	const items = await db
-		.select()
-		.from(itemsTable)
-		.where(
-			or(
-				...(role === Roles.DEFAULT
-					? defaultList.map((r) => {
-							return eq(itemsTable.role, r);
-						})
-					: premiumList.map((r) => {
-							return eq(itemsTable.role, r);
-						}))
-			)
-		);
-
-	return { items };
+	return presentItems(items);
 };

@@ -1,14 +1,15 @@
 import { JWT_SECRET } from '$env/static/private';
-import { db } from '$lib/server/db';
-import { usersTable } from '$lib/server/db/schema';
+import { getUserById } from '$lib/server/operations/users.operations';
+import { logout, setCookies, type CookieParameters } from '$lib/server/utils/auth';
 import { type Cookies } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
 interface TokenResponse {
 	accessToken: string;
 	refreshToken: string;
 }
+
+// TODO: Move to the entity lib
 
 type User = {
 	id: string;
@@ -49,21 +50,13 @@ async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
 	}
 
 	// Update token version??
-	const user = await db
-		.select({
-			version: usersTable.token_version,
-			id: usersTable.id,
-			token_version: usersTable.token_version
-		})
-		.from(usersTable)
-		.where(eq(usersTable.id, verifiedRefreshPayload.id))
-		.then((res) => res[0] ?? null);
+	const user = await getUserById(verifiedRefreshPayload.id);
 
 	if (!user) {
 		return null;
 	}
 
-	if (verifiedRefreshPayload.version !== user.version) {
+	if (verifiedRefreshPayload.version !== user.token_version) {
 		return null;
 	}
 
@@ -107,18 +100,13 @@ async function refresh(cookies: Cookies): Promise<User | null> {
 			return null;
 		}
 
-		cookies.set('accessToken', accessToken, {
-			path: '/',
-			maxAge: 7 * 24 * 60 * 60 * 1000,
-			httpOnly: true,
-			secure: true
-		});
-		cookies.set('refreshToken', refreshToken, {
-			path: '/',
-			maxAge: 15 * 60 * 1000,
-			httpOnly: true,
-			secure: true
-		});
+		// Circular dependencies ?
+		const cookieList: CookieParameters[] = [
+			{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
+			{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
+		];
+
+		setCookies(cookies, cookieList);
 
 		return { id: loggedInUser.id };
 	} catch (e) {
@@ -138,19 +126,9 @@ async function verifyAndFetchUser(accessToken: string, cookies: Cookies): Promis
 		return await refresh(cookies);
 	}
 
-	const fetchedUser = await db
-		.select()
-		.from(usersTable)
-		.where(eq(usersTable.id, verifiedAccessPayload.id))
-		.then((res) => res[0] ?? null);
+	const fetchedUser = await getUserById(verifiedAccessPayload.id);
 
 	if (!fetchedUser) return null;
 
 	return { id: fetchedUser.id };
-}
-
-function logout(cookies: Cookies, locals: App.Locals) {
-	cookies.delete('accessToken', { path: '/' });
-	cookies.delete('refreshToken', { path: '/' });
-	locals.user = undefined;
 }
