@@ -1,52 +1,16 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
-	import { startRegistration } from '@simplewebauthn/browser';
-	import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
+	import { goto } from '$app/navigation';
+	import { initiatePasskeyRegisterFlow } from '$lib/passkeys';
 
-	// GET registration options from the endpoint that calls
-	// @simplewebauthn/server -> generateRegistrationOptions()
-
-	// Pass the options to the authenticator and wait for a response
-	// attResp = await startRegistration(await resp.json());
-
-	// Wait for the results of verification
-	// const verificationJSON = await verificationResp.json();
-
-	async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
-		try {
-			return await startRegistration(res);
-		} catch (error) {
-			// Some basic error handling
-			let err = error as any;
-			if (err.name === 'InvalidStateError') {
-				console.log('Error: Authenticator was probably already registered by user');
-			} else {
-				console.log(error);
-			}
-			throw error;
+	async function handleClick(
+		_: MouseEvent & {
+			currentTarget: EventTarget & HTMLButtonElement;
 		}
-	}
-
-	async function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		e.preventDefault();
-
-		const res = await fetch('/api/auth/passkeys/register/options');
-		if (!res.ok) {
-			// Handle error
-			return;
-		}
-		const r = await handleClientRegistration(await res.json());
-		const verificationResp = await fetch('/api/auth/passkeys/register/verify', {
-			method: 'POST',
-			body: JSON.stringify(r)
-		});
-		const verificationJSON = await verificationResp.json();
-
-		if (verificationJSON && verificationJSON.verified) {
+	) {
+		if (await initiatePasskeyRegisterFlow())
 			goto('/profile', {
 				invalidateAll: true
 			});
-		}
 	}
 </script>
 

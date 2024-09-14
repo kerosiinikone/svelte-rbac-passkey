@@ -5,12 +5,20 @@
 type RequestMethod = 'GET' | 'POST';
 
 export function createCaller(f: (url: string, init?: RequestInit) => Promise<Response>) {
-	return async function <T>(url: string, method: RequestMethod = 'GET', opts: RequestInit = {}) {
+	return async function <T>(
+		url: string,
+		method: RequestMethod = 'GET',
+		opts: RequestInit & {
+			includeHeaders?: boolean;
+		} = {}
+	) {
 		const res = await f(url, { method, ...opts });
-		// TODO: Custom Errors?
 		if (!res.ok) {
-			throw new Error('');
+			throw new Error('apiFetch error');
 		}
-		return res.json() as Promise<T>;
+		return {
+			...(await res.json()),
+			headers: opts.includeHeaders ? res.headers : undefined
+		} as Promise<T>;
 	};
 }

@@ -1,13 +1,9 @@
 import { JWT_SECRET } from '$env/static/private';
 import { getUserById } from '$lib/server/operations/users.operations';
-import { logout, setCookies, type CookieParameters } from '$lib/server/utils/auth';
+import { logout, setCookies, signTokenPayload } from '$lib/server/utils/auth';
+import type { CookieParameters, TokenResponse } from '$lib/types';
 import { type Cookies } from '@sveltejs/kit';
 import jwt from 'jsonwebtoken';
-
-interface TokenResponse {
-	accessToken: string;
-	refreshToken: string;
-}
 
 // TODO: Move to the entity lib
 
@@ -61,17 +57,10 @@ async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
 	}
 
 	// Sign new tokens
-	const accessPayload = {
-		id: user.id
-	};
-
-	const refreshPayload = {
-		id: user.id,
-		version: user.token_version
-	};
-
-	const accessToken = jwt.sign(accessPayload, JWT_SECRET);
-	const newRefreshToken = jwt.sign(refreshPayload, JWT_SECRET);
+	const { accessToken, refreshToken: newRefreshToken } = signTokenPayload(
+		user.id,
+		user.token_version
+	);
 
 	return {
 		accessToken,

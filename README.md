@@ -10,5 +10,3 @@
 - Errors on passkeys -> passkey deleted, does not exist, etc
 - Somehow get the indentifier (icloud keychain, microsoft hello) for each passkey to display
 - Better UI elements, animations, spinners, skeletons, etc (last in order)
-- Main protected items page
-- What data is passed around in requests, in what order, and if it's even necessary??

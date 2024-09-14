@@ -11,3 +11,13 @@ export async function getUserPasskeys(user: string): Promise<PasskeyRow[]> {
 		throw error;
 	}
 }
+
+export async function deletePasskey(pid: string): Promise<void> {
+	try {
+		await db.delete(webPasskeyTable).where(eq(webPasskeyTable.credId, pid));
+	} catch (err) {
+		const error = err as any;
+		// Custom DB error from errors.ts?
+		throw error;
+	}
+}

@@ -1,18 +1,13 @@
-import { db } from '$lib/server/db/index.js';
-import { passcodeTable, usersTable } from '$lib/server/db/schema.js';
-import { createPasscode } from '$lib/server/utils/passcode.js';
-import { error, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { z } from 'zod';
-import bcrypt from 'bcrypt';
-import nodemailer from 'nodemailer';
-import { EMAIL_ADDRESS, EMAIL_PASSWORD, JWT_SECRET } from '$env/static/private';
-import jwt from 'jsonwebtoken';
-import { Roles } from '$lib/types.js';
+import { EMAIL_ADDRESS } from '$env/static/private';
 import { User } from '$lib/server/models/user/index.js';
-import { createUser } from '$lib/server/operations';
+import { createPasscodeEntry, createUser, getUserByEmail } from '$lib/server/operations';
+import { createPasscode, setCookies, signTokenPayload } from '$lib/server/utils/auth.js';
 import { saveUser } from '$lib/server/utils/dto.js';
-import { setCookies, type CookieParameters } from '$lib/server/utils/auth.js';
+import { EmailService } from '$lib/server/utils/email.js';
+import { Roles, type CookieParameters } from '$lib/types.js';
+import { error, fail, redirect } from '@sveltejs/kit';
+import bcrypt from 'bcrypt';
+import { z } from 'zod';
 
 export const actions = {
 	signin: async ({ request, cookies, locals }) => {
@@ -24,75 +19,55 @@ export const actions = {
 		const result = schema.safeParse(email);
 
 		if (!result.success) {
-			error(400);
+			return fail(400);
 		}
 
 		// Check if the email already exists
-		const existingEmail = await db
-			.select()
-			.from(usersTable)
-			.where(eq(usersTable.email, email))
-			.then((res) => res[0] ?? null);
+		const existingEmail = await getUserByEmail(email);
 
 		// If it does, start the passcode sequence
 		if (existingEmail) {
 			// Passcode sequence -> verify this is feasible and the right way with Gemini
-
-			// Create code
 			const passcode = createPasscode();
+			// Send email -> should this be handled more securely / some other way?
+			try {
+				const mailer = new EmailService({
+					host: 'smtp.gmail.com',
+					port: 587,
+					isSecure: true,
+					provider: 'nodemailer'
+				});
 
-			// Send the email confirmation
-			const transporter = nodemailer.createTransport({
-				host: 'smtp.gmail.com',
-				port: 587,
-				secure: false,
-				auth: {
-					user: EMAIL_ADDRESS,
-					pass: EMAIL_PASSWORD
-				}
-			});
+				const mailOpts = {
+					from: EMAIL_ADDRESS,
+					to: email,
+					subject: passcode
+				};
 
-			await transporter.sendMail({
-				from: EMAIL_ADDRESS,
-				to: email,
-				subject: passcode
-			});
+				await mailer.sendMail(mailOpts);
 
-			// Hash the code
-			const hashedCode = await bcrypt.hash(passcode, 10);
+				const hashedCode = await bcrypt.hash(passcode, 10);
+				await createPasscodeEntry(hashedCode, email);
 
-			// Save the database entry
-			await db.insert(passcodeTable).values({
-				id: crypto.randomUUID(),
-				email,
-				passcode: hashedCode
-			});
+				cookies.set('pending_email', JSON.stringify(email), {
+					path: '/',
+					secure: true,
+					httpOnly: true,
+					maxAge: 1000 * 60 * 6 // 5 minutes
+				});
 
-			cookies.set('pending_email', JSON.stringify(email), {
-				path: '/',
-				secure: true,
-				httpOnly: true,
-				maxAge: 1000 * 60 * 6 // 5 minutes
-			});
-
-			redirect(303, '/login/confirmation');
+				redirect(303, '/login/confirmation');
+			} catch (err) {
+				// Handle the custom error
+				error(500, ''); // -> custom error body and status
+			}
 		}
 
 		const user = new User(crypto.randomUUID(), Roles.DEFAULT, email, false);
 
 		await createUser(saveUser(user));
 
-		const accessPayload = {
-			id: user.getId()
-		};
-
-		const refreshPayload = {
-			id: user.getId(),
-			version: user.getTokenVersion()
-		};
-
-		const accessToken = jwt.sign(accessPayload, JWT_SECRET);
-		const refreshToken = jwt.sign(refreshPayload, JWT_SECRET);
+		const { accessToken, refreshToken } = signTokenPayload(user.getId(), user.getTokenVersion());
 
 		const cookieList: CookieParameters[] = [
 			{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },

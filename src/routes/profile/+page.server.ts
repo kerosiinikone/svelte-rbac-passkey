@@ -1,11 +1,12 @@
-import { invalidate, invalidateAll } from '$app/navigation';
-import { db } from '$lib/server/db/index.js';
-import { usersTable, webPasskeyTable } from '$lib/server/db/schema.js';
-import { getUserById, getUserPasskeys } from '$lib/server/operations';
+import {
+	deletePasskey,
+	getUserById,
+	getUserPasskeys,
+	updateUserRole
+} from '$lib/server/operations';
 import { presentPasskeys, presentUser } from '$lib/server/utils/dto.js';
 import { Roles } from '$lib/types.js';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export const load = async ({ locals }) => {
@@ -31,7 +32,7 @@ export const actions = {
 			fail(400);
 		}
 
-		await db.delete(webPasskeyTable).where(eq(webPasskeyTable.credId, pid));
+		await deletePasskey(pid);
 
 		redirect(303, '/profile');
 	},
@@ -43,8 +44,8 @@ export const actions = {
 			return;
 		}
 
-		const formData = await request.formData();
-		const role = formData.get('role') as string;
+		const formData = Object.fromEntries(await request.formData());
+		const role = formData.role as string;
 
 		const result = schema.safeParse(role);
 
@@ -52,11 +53,6 @@ export const actions = {
 			error(400);
 		}
 
-		await db
-			.update(usersTable)
-			.set({
-				role: role as Roles
-			})
-			.where(eq(usersTable.id, loggedInUser));
+		await updateUserRole(role as Roles, loggedInUser);
 	}
 };

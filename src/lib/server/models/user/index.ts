@@ -11,13 +11,13 @@ const userSchema = z.object({
 });
 
 export class User {
-	private token_version: number;
+	private readonly token_version: number;
 
 	constructor(
-		private id: string,
-		private role: Roles,
-		private email: string,
-		private verified: boolean
+		private readonly id: string,
+		private readonly role: Roles,
+		private readonly email: string,
+		private readonly verified: boolean
 	) {
 		this.token_version = 1;
 		this.validateEntity();

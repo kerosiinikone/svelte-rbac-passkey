@@ -1,10 +1,13 @@
-import { db } from '$lib/server/db/index.js';
-import { passcodeTable, usersTable } from '$lib/server/db/schema.js';
-import { desc, eq } from 'drizzle-orm';
+import {
+	deletePasscodeEntry,
+	getPasscodeEntry,
+	getUserByEmail,
+	setIsVerifiedUser
+} from '$lib/server/operations';
+import { setCookies, signTokenPayload } from '$lib/server/utils/auth.js';
+import type { CookieParameters } from '$lib/types.js';
+import { error, redirect } from '@sveltejs/kit';
 import bcrypt from 'bcrypt';
-import { error, fail, redirect } from '@sveltejs/kit';
-import { JWT_SECRET } from '$env/static/private';
-import jwt from 'jsonwebtoken';
 
 const CODE_TIMEOUT = 10 * 60 * 1000;
 
@@ -21,16 +24,7 @@ export const actions = {
 		}
 
 		// Get the LATEST code for a particular email
-		const code = await db
-			.select({
-				code: passcodeTable.passcode,
-				id: passcodeTable.id,
-				created_at: passcodeTable.created_at
-			})
-			.from(passcodeTable)
-			.orderBy(desc(passcodeTable.created_at))
-			.where(eq(passcodeTable.email, email))
-			.then((res) => res[0] ?? null);
+		const code = await getPasscodeEntry(email);
 
 		// Check whether a code is stale -> only valid for 10 minutes
 		const timeDiff = Math.abs(new Date().getTime() - code.created_at.getTime());
@@ -40,7 +34,7 @@ export const actions = {
 		}
 
 		// Compare codes
-		const isValid = await bcrypt.compare(inputCode, code.code);
+		const isValid = await bcrypt.compare(inputCode, code.passcode);
 
 		if (!isValid) {
 			error(400);
@@ -52,52 +46,27 @@ export const actions = {
 		});
 
 		// Delete passcode entry
-		await db.delete(passcodeTable).where(eq(passcodeTable.id, code.id));
+		await deletePasscodeEntry(code);
 
 		// Fetch user
-		const user = await db
-			.select()
-			.from(usersTable)
-			.where(eq(usersTable.email, email))
-			.then((res) => res[0] ?? null);
+		const dbUser = await getUserByEmail(email);
 
-		if (!user) {
+		if (!dbUser) {
 			error(400);
 		}
 
 		// Set user as verified
-		await db
-			.update(usersTable)
-			.set({
-				verified: true
-			})
-			.where(eq(usersTable.id, user.id));
+		await setIsVerifiedUser(dbUser.id);
 
 		// Set cookies, log in, etc
-		const accessPayload = {
-			id: user.id
-		};
+		const { accessToken, refreshToken } = signTokenPayload(dbUser.id, dbUser.token_version);
 
-		const refreshPayload = {
-			id: user.id,
-			version: user.token_version
-		};
+		const cookieList: CookieParameters[] = [
+			{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
+			{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
+		];
 
-		const accessToken = jwt.sign(accessPayload, JWT_SECRET);
-		const refreshToken = jwt.sign(refreshPayload, JWT_SECRET);
-
-		cookies.set('accessToken', accessToken, {
-			path: '/',
-			maxAge: 7 * 24 * 60 * 60 * 1000,
-			httpOnly: true,
-			secure: true
-		});
-		cookies.set('refreshToken', refreshToken, {
-			path: '/',
-			maxAge: 15 * 60 * 1000,
-			httpOnly: true,
-			secure: true
-		});
+		setCookies(cookies, cookieList);
 
 		redirect(303, '/profile');
 	}

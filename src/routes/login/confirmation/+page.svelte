@@ -2,8 +2,6 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 
-	// Resend possibility?
-
 	const { data } = $props();
 
 	let inputs = $state(Array(6).fill('') as string[]);

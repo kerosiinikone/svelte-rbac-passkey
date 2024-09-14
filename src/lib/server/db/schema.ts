@@ -7,6 +7,8 @@ export type ItemRow = typeof itemsTable.$inferSelect;
 
 export type UserRow = typeof usersTable.$inferSelect;
 
+export type PasscodeRow = typeof passcodeTable.$inferSelect;
+
 export const roleEnum = pgEnum('role', ['DEFAULT', 'PREMIUM', 'ADMIN']);
 
 export const usersTable = pgTable(

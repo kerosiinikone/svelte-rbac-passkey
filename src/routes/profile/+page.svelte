@@ -1,60 +1,24 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
-	import { startRegistration } from '@simplewebauthn/browser';
-	import PrimaryAuthBtn from '../../lib/components/PrimaryAuthBtn.svelte';
-	import type { VerifiedRegistrationResponse } from '@simplewebauthn/server';
-	import type {
-		PublicKeyCredentialCreationOptionsJSON,
-		RegistrationResponseJSON
-	} from '@simplewebauthn/types';
+	import { initiatePasskeyRegisterFlow } from '$lib/passkeys';
 	import { Roles } from '$lib/types';
-	import { createCaller } from '$lib/api/request';
+	import PrimaryAuthBtn from '../../lib/components/PrimaryAuthBtn.svelte';
 
 	const { data } = $props();
 	let role: Roles = $state(data.user.role);
 
-	const apiFetch = createCaller(fetch);
-
-	async function handleClientRegistration(
-		res: PublicKeyCredentialCreationOptionsJSON
-	): Promise<RegistrationResponseJSON> {
-		try {
-			return await startRegistration(res);
-		} catch (error) {
-			// TODO: CUSTOM ERRORS
-			let err = error as any;
-			if (err.name === 'InvalidStateError') {
-				console.log('Error: Authenticator was probably already registered by user');
-			} else {
-				console.log(error);
-			}
-			throw error;
-		}
-	}
-
 	async function handleClick(
-		_: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-	): Promise<void> {
-		const res = await apiFetch<PublicKeyCredentialCreationOptionsJSON>(
-			'/api/auth/passkeys/register/options'
-		);
-		const r = await handleClientRegistration(res);
-
-		const verificationResp = await apiFetch<VerifiedRegistrationResponse>(
-			'/api/auth/passkeys/register/verify',
-			'POST',
-			{ body: JSON.stringify(r) }
-		);
-
-		if (verificationResp && verificationResp.verified) {
+		e: MouseEvent & {
+			currentTarget: EventTarget & HTMLButtonElement;
+		}
+	) {
+		if (await initiatePasskeyRegisterFlow())
 			goto('/profile', {
 				invalidateAll: true
 			});
-		}
 	}
 
-	// Loading spinner?
 	function handleRoleSwitch(r: Roles) {
 		role = r;
 	}
@@ -80,7 +44,7 @@
 <div class="h-full w-full flex flex-col justify-center items-center">
 	<div
 		id="dash-container"
-		class="flex flex-col border-2 items-center border-slate-150 rounded-[80px] p-20 border-dashed gap-10"
+		class="flex flex-col border-2 items-center border-slate-150 rounded-[80px] py-10 px-20 border-dashed gap-10"
 	>
 		<div id="email-img-section" class="flex flex-row items-center jusitfy-center gap-5">
 			<span
