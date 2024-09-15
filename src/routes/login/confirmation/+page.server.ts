@@ -1,3 +1,4 @@
+import { DatabaseError } from '$lib/errors.js';
 import {
 	deletePasscodeEntry,
 	getPasscodeEntry,
@@ -20,54 +21,69 @@ export const actions = {
 		const email: string = JSON.parse(cookies.get('pending_email') as string);
 
 		if (!email) {
-			error(500, 'No Email');
+			return {
+				error: 'No email found'
+			};
 		}
 
-		// Get the LATEST code for a particular email
-		const code = await getPasscodeEntry(email);
+		try {
+			// Get the LATEST code for a particular email
+			const code = await getPasscodeEntry(email);
 
-		// Check whether a code is stale -> only valid for 10 minutes
-		const timeDiff = Math.abs(new Date().getTime() - code.created_at.getTime());
+			// Check whether a code is stale -> only valid for 10 minutes
+			const timeDiff = Math.abs(new Date().getTime() - code.created_at.getTime());
 
-		if (timeDiff >= CODE_TIMEOUT) {
-			error(400);
+			if (timeDiff >= CODE_TIMEOUT) {
+				return {
+					error: 'Passcode auth failed'
+				};
+			}
+
+			// Compare codes
+			const isValid = await bcrypt.compare(inputCode, code.passcode);
+
+			if (!isValid) {
+				return {
+					error: 'Passcode auth failed'
+				};
+			}
+
+			// Clear cookie
+			cookies.delete('pending_email', {
+				path: '/'
+			});
+
+			// Delete passcode entry
+			await deletePasscodeEntry(code);
+
+			// Fetch user
+			const dbUser = await getUserByEmail(email);
+
+			if (!dbUser) {
+				return {
+					error: 'No user found'
+				};
+			}
+
+			// Set user as verified
+			await setIsVerifiedUser(dbUser.id);
+
+			// Set cookies, log in, etc
+			const { accessToken, refreshToken } = signTokenPayload(dbUser.id, dbUser.token_version);
+
+			const cookieList: CookieParameters[] = [
+				{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
+				{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
+			];
+
+			setCookies(cookies, cookieList);
+
+			redirect(303, '/profile');
+		} catch (err) {
+			if (err instanceof DatabaseError) {
+				return { error: err.message };
+			}
+			error(500);
 		}
-
-		// Compare codes
-		const isValid = await bcrypt.compare(inputCode, code.passcode);
-
-		if (!isValid) {
-			error(400);
-		}
-
-		// Clear cookie
-		cookies.delete('pending_email', {
-			path: '/'
-		});
-
-		// Delete passcode entry
-		await deletePasscodeEntry(code);
-
-		// Fetch user
-		const dbUser = await getUserByEmail(email);
-
-		if (!dbUser) {
-			error(400);
-		}
-
-		// Set user as verified
-		await setIsVerifiedUser(dbUser.id);
-
-		// Set cookies, log in, etc
-		const { accessToken, refreshToken } = signTokenPayload(dbUser.id, dbUser.token_version);
-
-		const cookieList: CookieParameters[] = [
-			{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
-			{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
-		];
-
-		setCookies(cookies, cookieList);
-
-		redirect(303, '/profile');
 	}
 };

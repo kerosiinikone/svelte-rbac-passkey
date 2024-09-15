@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { db } from '../db';
+import db from '../db';
 import { webPasskeyTable, type PasskeyRow } from '../db/schema';
 
 export async function getUserPasskeys(user: string): Promise<PasskeyRow[]> {

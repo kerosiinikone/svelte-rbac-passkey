@@ -8,6 +8,7 @@ import type {
 	PublicKeyCredentialRequestOptionsJSON
 } from '@simplewebauthn/types';
 import { createCaller } from './api/request';
+import { PasskeyError } from './errors';
 
 const R_OPTIONS = '/api/auth/passkeys/register/options';
 const R_VERIFY = '/api/auth/passkeys/register/verify';
@@ -23,11 +24,10 @@ async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJ
 	} catch (error) {
 		let err = error as any;
 		if (err.name === 'InvalidStateError') {
-			console.log('Error: Authenticator was probably already registered by user');
+			throw new PasskeyError('Authenticator was probably already registered by user');
 		} else {
-			console.log(error);
+			throw new PasskeyError('Passkey failed', { cause: JSON.stringify(err) });
 		}
-		throw error;
 	}
 }
 
@@ -47,7 +47,8 @@ async function handleClientAuthentication(res: PublicKeyCredentialRequestOptions
 	try {
 		return await startAuthentication(res);
 	} catch (error) {
-		console.log(error);
+		let err = error as any;
+		throw new PasskeyError('Passkey failed', { cause: JSON.stringify(err) });
 	}
 }
 

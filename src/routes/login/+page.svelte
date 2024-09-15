@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { PasskeyError } from '$lib/errors.js';
 	import { initiatePasskeyAuthFlow } from '$lib/passkeys.js';
 
 	const { form } = $props();
@@ -11,10 +12,17 @@
 			currentTarget: EventTarget & HTMLButtonElement;
 		}
 	) {
-		if (await initiatePasskeyAuthFlow())
-			goto('/profile', {
-				invalidateAll: true
-			});
+		try {
+			if (await initiatePasskeyAuthFlow())
+				goto('/profile', {
+					invalidateAll: true
+				});
+		} catch (error) {
+			let err = error as any;
+			if (err instanceof PasskeyError) {
+				// Toast
+			}
+		}
 	}
 
 	$effect(() => {
@@ -36,13 +44,21 @@
 				onsubmit={() => {
 					isPending = true;
 				}}
-				use:enhance
+				use:enhance={() => {
+					return ({ result }) => {
+						if (result.type == 'success' && result.data?.error) {
+							// Toast
+						}
+					};
+				}}
 				action="?/signin"
 				class="flex flex-col gap-8"
 			>
 				<!-- Autofill -->
 				<input
 					type="email"
+					minlength="5"
+					maxlength="100"
 					placeholder="Sähköposti"
 					class="py-2 px-4 border-2 border-slate-150 rounded-3xl w-full bg-slate-50"
 					name="email"

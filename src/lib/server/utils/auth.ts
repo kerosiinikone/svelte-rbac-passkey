@@ -15,33 +15,30 @@ export function setCookies(writer: Cookies, cookies: CookieParameters[]): void {
 }
 
 export function signTokenPayload(id: string, version: number): TokenResponse {
-	const accessToken = jwt.sign(
-		{
-			id
-		},
-		JWT_SECRET
-	);
-	const refreshToken = jwt.sign(
-		{
-			id,
-			version
-		},
-		JWT_SECRET
-	);
-
 	return {
-		accessToken,
-		refreshToken
+		accessToken: jwt.sign(
+			{
+				id
+			},
+			JWT_SECRET
+		),
+		refreshToken: jwt.sign(
+			{
+				id,
+				version
+			},
+			JWT_SECRET
+		)
 	};
 }
 
-export function logout(cookies: Cookies, locals: App.Locals) {
+export function logout(cookies: Cookies, locals: App.Locals): void {
 	cookies.delete('accessToken', { path: '/' });
 	cookies.delete('refreshToken', { path: '/' });
 	locals.user = undefined;
 }
 
-export function createPasscode() {
+export function createPasscode(): string {
 	const array = new Uint32Array(6);
 	crypto.getRandomValues(array);
 	return array.map((i) => parseFloat(JSON.stringify(i)[0])).join('');

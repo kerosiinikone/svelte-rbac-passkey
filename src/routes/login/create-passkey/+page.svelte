@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { PasskeyError } from '$lib/errors';
 	import { initiatePasskeyRegisterFlow } from '$lib/passkeys';
 
 	async function handleClick(
@@ -7,10 +8,17 @@
 			currentTarget: EventTarget & HTMLButtonElement;
 		}
 	) {
-		if (await initiatePasskeyRegisterFlow())
-			goto('/profile', {
-				invalidateAll: true
-			});
+		try {
+			if (await initiatePasskeyRegisterFlow())
+				goto('/profile', {
+					invalidateAll: true
+				});
+		} catch (error) {
+			let err = error as any;
+			if (err instanceof PasskeyError) {
+				// Toast
+			}
+		}
 	}
 </script>
 

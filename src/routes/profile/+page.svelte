@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
+	import { PasskeyError } from '$lib/errors';
 	import { initiatePasskeyRegisterFlow } from '$lib/passkeys';
 	import { Roles } from '$lib/types';
 	import PrimaryAuthBtn from '../../lib/components/PrimaryAuthBtn.svelte';
@@ -13,10 +14,17 @@
 			currentTarget: EventTarget & HTMLButtonElement;
 		}
 	) {
-		if (await initiatePasskeyRegisterFlow())
-			goto('/profile', {
-				invalidateAll: true
-			});
+		try {
+			if (await initiatePasskeyRegisterFlow())
+				goto('/profile', {
+					invalidateAll: true
+				});
+		} catch (error) {
+			let err = error as any;
+			if (err instanceof PasskeyError) {
+				// Toast
+			}
+		}
 	}
 
 	function handleRoleSwitch(r: Roles) {
@@ -33,6 +41,12 @@
 			method="POST"
 			use:enhance={({ formData }) => {
 				formData.append('pid', passkey.id);
+				return ({ result }) => {
+					if (result.type == 'success' && result.data?.error) {
+						// Toast
+					}
+					invalidate('/');
+				};
 			}}
 			action="?/deletePasskey"
 		>
@@ -86,7 +100,10 @@
 						default:
 							break;
 					}
-					return () => {
+					return ({ result }) => {
+						if (result.type == 'success' && result.data?.error) {
+							// Toast
+						}
 						invalidate('/');
 					};
 				}}

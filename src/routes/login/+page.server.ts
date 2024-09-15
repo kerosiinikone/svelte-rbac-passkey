@@ -1,4 +1,5 @@
 import { EMAIL_ADDRESS } from '$env/static/private';
+import { DatabaseError, ValidationError } from '$lib/errors.js';
 import { User } from '$lib/server/models/user/index.js';
 import { createPasscodeEntry, createUser, getUserByEmail } from '$lib/server/operations';
 import { createPasscode, setCookies, signTokenPayload } from '$lib/server/utils/auth.js';
@@ -19,13 +20,13 @@ export const actions = {
 		const result = schema.safeParse(email);
 
 		if (!result.success) {
-			return fail(400);
+			return {
+				error: ValidationError.parseZodError(result.error)
+			};
 		}
-
 		// Check if the email already exists
 		const existingEmail = await getUserByEmail(email);
 
-		// If it does, start the passcode sequence
 		if (existingEmail) {
 			// Passcode sequence -> verify this is feasible and the right way with Gemini
 			const passcode = createPasscode();
@@ -58,30 +59,39 @@ export const actions = {
 
 				redirect(303, '/login/confirmation');
 			} catch (err) {
-				// Handle the custom error
-				error(500, ''); // -> custom error body and status
+				if (err instanceof DatabaseError) {
+					return { error: err.message };
+				}
+				error(500);
 			}
 		}
 
-		const user = new User(crypto.randomUUID(), Roles.DEFAULT, email, false);
+		try {
+			const user = new User(crypto.randomUUID(), Roles.DEFAULT, email, false);
 
-		await createUser(saveUser(user));
+			await createUser(saveUser(user));
 
-		const { accessToken, refreshToken } = signTokenPayload(user.getId(), user.getTokenVersion());
+			const { accessToken, refreshToken } = signTokenPayload(user.getId(), user.getTokenVersion());
 
-		const cookieList: CookieParameters[] = [
-			{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
-			{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
-		];
+			const cookieList: CookieParameters[] = [
+				{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
+				{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
+			];
 
-		setCookies(cookies, cookieList);
+			setCookies(cookies, cookieList);
 
-		cookies.delete('pending_email', {
-			path: '/'
-		});
+			cookies.delete('pending_email', {
+				path: '/'
+			});
 
-		locals.user = user.getId();
+			locals.user = user.getId();
 
-		redirect(303, '/login/create-passkey');
+			redirect(303, '/login/create-passkey');
+		} catch (err) {
+			if (err instanceof DatabaseError) {
+				return { error: err.message };
+			}
+			error(500);
+		}
 	}
 };

@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
-import { db } from '../db';
+import db from '../db';
 import { passcodeTable, usersTable, type PasscodeRow, type UserRow } from '../db/schema';
 import type { Roles } from '$lib/types';
 import type { MappedUser } from '../models/user';

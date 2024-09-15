@@ -43,6 +43,11 @@
 				method="POST"
 				use:enhance={({ formData }) => {
 					formData.append('code', inputs.join(''));
+					return ({ result }) => {
+						if (result.type == 'success' && result.data?.error) {
+							// Toast
+						}
+					};
 				}}
 				class="flex flex-col gap-8"
 			>

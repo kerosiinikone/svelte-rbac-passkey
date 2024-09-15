@@ -1,13 +1,12 @@
 import { JWT_SECRET } from '$env/static/private';
+import { DatabaseError } from '$lib/errors';
 import { getUserById } from '$lib/server/operations/users.operations';
 import { logout, setCookies, signTokenPayload } from '$lib/server/utils/auth';
 import type { CookieParameters, TokenResponse } from '$lib/types';
 import { type Cookies } from '@sveltejs/kit';
 import jwt from 'jsonwebtoken';
 
-// TODO: Move to the entity lib
-
-type User = {
+type AuthUser = {
 	id: string;
 };
 
@@ -17,11 +16,15 @@ export async function handle({ event, resolve }) {
 	const accessToken = event.cookies.get('accessToken');
 
 	if (protectedRouteMatcher(event.url.pathname, protectedRoutes)) {
-		const user: User | null = await verifyAndFetchUser(accessToken ?? '', event.cookies);
-		if (!user) {
+		try {
+			const user: AuthUser | null = await verifyAndFetchUser(accessToken ?? '', event.cookies);
+			if (!user) {
+				logout(event.cookies, event.locals);
+			} else {
+				event.locals.user = user?.id;
+			}
+		} catch (error) {
 			logout(event.cookies, event.locals);
-		} else {
-			event.locals.user = user?.id;
 		}
 	}
 
@@ -45,7 +48,6 @@ async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
 		return null;
 	}
 
-	// Update token version??
 	const user = await getUserById(verifiedRefreshPayload.id);
 
 	if (!user) {
@@ -59,7 +61,7 @@ async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
 	// Sign new tokens
 	const { accessToken, refreshToken: newRefreshToken } = signTokenPayload(
 		user.id,
-		user.token_version
+		user.token_version + 1
 	);
 
 	return {
@@ -68,7 +70,7 @@ async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
 	};
 }
 
-async function refresh(cookies: Cookies): Promise<User | null> {
+async function refresh(cookies: Cookies): Promise<AuthUser | null> {
 	const initialRefreshToken = cookies.get('refreshToken');
 
 	if (!initialRefreshToken) return null;
@@ -89,7 +91,6 @@ async function refresh(cookies: Cookies): Promise<User | null> {
 			return null;
 		}
 
-		// Circular dependencies ?
 		const cookieList: CookieParameters[] = [
 			{ name: 'accessToken', val: accessToken, opts: { maxAge: 7 * 24 * 60 * 60 * 1000 } },
 			{ name: 'refreshToken', val: refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
@@ -103,7 +104,7 @@ async function refresh(cookies: Cookies): Promise<User | null> {
 	}
 }
 
-async function verifyAndFetchUser(accessToken: string, cookies: Cookies): Promise<User | null> {
+async function verifyAndFetchUser(accessToken: string, cookies: Cookies): Promise<AuthUser | null> {
 	let verifiedAccessPayload;
 
 	try {

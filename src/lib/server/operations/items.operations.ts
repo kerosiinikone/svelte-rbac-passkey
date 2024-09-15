@@ -1,7 +1,8 @@
 import { Roles } from '$lib/types';
-import { eq, or } from 'drizzle-orm';
-import { db } from '../db';
+import { DrizzleError, eq, or } from 'drizzle-orm';
+import db from '../db';
 import { itemsTable, type ItemRow } from '../db/schema';
+import { DatabaseError } from '../../errors';
 
 const premiumList = [Roles.DEFAULT, Roles.PREMIUM];
 const defaultList = [Roles.DEFAULT];
@@ -23,8 +24,7 @@ export async function getItemsByRole(role: Roles): Promise<ItemRow[]> {
 				)
 			);
 	} catch (err) {
-		const error = err as any;
-		// Custom DB error from errors.ts?
-		throw error;
+		const error = err as DrizzleError;
+		throw new DatabaseError(error);
 	}
 }

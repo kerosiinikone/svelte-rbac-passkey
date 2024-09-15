@@ -1,3 +1,4 @@
+import { DatabaseError } from '$lib/errors.js';
 import {
 	deletePasskey,
 	getUserById,
@@ -6,7 +7,7 @@ import {
 } from '$lib/server/operations';
 import { presentPasskeys, presentUser } from '$lib/server/utils/dto.js';
 import { Roles } from '$lib/types.js';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 
 export const load = async ({ locals }) => {
@@ -19,7 +20,7 @@ export const load = async ({ locals }) => {
 };
 
 export const actions = {
-	deletePasskey: async ({ request }) => {
+	deletePasskey: async ({ request, locals }) => {
 		const schema = z.string();
 
 		const formData = Object.fromEntries(await request.formData());
@@ -29,20 +30,29 @@ export const actions = {
 		const result = schema.safeParse(pid);
 
 		if (!result.success) {
-			fail(400);
+			return {
+				error: result.error
+			};
 		}
 
-		await deletePasskey(pid);
+		if (!locals.user) {
+			return {
+				error: 'No auth'
+			};
+		}
 
-		redirect(303, '/profile');
+		try {
+			await deletePasskey(pid);
+			redirect(303, '/profile');
+		} catch (err) {
+			if (err instanceof DatabaseError) {
+				return { error: err.message };
+			}
+			error(500);
+		}
 	},
 	switchRole: async ({ request, locals }) => {
 		const schema = z.nativeEnum(Roles);
-
-		const loggedInUser = locals.user;
-		if (!loggedInUser) {
-			return;
-		}
 
 		const formData = Object.fromEntries(await request.formData());
 		const role = formData.role as string;
@@ -50,9 +60,24 @@ export const actions = {
 		const result = schema.safeParse(role);
 
 		if (!result.success) {
-			error(400);
+			return {
+				error: result.error
+			};
 		}
 
-		await updateUserRole(role as Roles, loggedInUser);
+		if (!locals.user) {
+			return {
+				error: 'No auth'
+			};
+		}
+
+		try {
+			await updateUserRole(role as Roles, locals.user);
+		} catch (err) {
+			if (err instanceof DatabaseError) {
+				return { error: err.message };
+			}
+			error(500);
+		}
 	}
 };
