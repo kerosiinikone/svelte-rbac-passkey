@@ -21,7 +21,15 @@ export class PasskeyError extends AuthenticationError {
 	}
 }
 
-export class ValidationError {
+export class ValidationError extends Error {
+	private validationErrors: ZodError;
+
+	constructor(message: string, validationErrors: ZodError) {
+		super(message);
+		this.name = 'ValidationError';
+		this.validationErrors = validationErrors;
+	}
+
 	static parseZodError(err: ZodError): string {
 		return err.message;
 	}

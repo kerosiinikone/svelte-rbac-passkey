@@ -1,5 +1,5 @@
 import { JWT_SECRET } from '$env/static/private';
-import { db } from '$lib/server/db';
+import db from '$lib/server/db/index.js';
 import { userPasskeyOptions, usersTable, webPasskeyTable } from '$lib/server/db/schema.js';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { error, json } from '@sveltejs/kit';

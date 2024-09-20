@@ -32,10 +32,10 @@ export function signTokenPayload(id: string, version: number): TokenResponse {
 	};
 }
 
-export function logout(cookies: Cookies, locals: App.Locals): void {
+export function logout(cookies: Cookies, locals?: App.Locals): void {
 	cookies.delete('accessToken', { path: '/' });
 	cookies.delete('refreshToken', { path: '/' });
-	locals.user = undefined;
+	if (locals?.user) locals.user = undefined;
 }
 
 export function createPasscode(): string {

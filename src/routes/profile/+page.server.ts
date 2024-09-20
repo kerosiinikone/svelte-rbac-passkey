@@ -13,10 +13,17 @@ import { z } from 'zod';
 export const load = async ({ locals }) => {
 	if (!locals.user) redirect(301, '/');
 
-	const fetchedUser = await getUserById(locals.user);
-	const userPasskeys = await getUserPasskeys(locals.user);
+	try {
+		const fetchedUser = await getUserById(locals.user);
+		const userPasskeys = await getUserPasskeys(locals.user);
 
-	return { user: presentUser(fetchedUser!), verifiedPasskeys: presentPasskeys(userPasskeys) };
+		return { user: presentUser(fetchedUser!), verifiedPasskeys: presentPasskeys(userPasskeys) };
+	} catch (err) {
+		if (err instanceof DatabaseError) {
+			return { error: err.message };
+		}
+		error(500);
+	}
 };
 
 export const actions = {

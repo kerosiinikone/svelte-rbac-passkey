@@ -33,7 +33,6 @@ async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJ
 
 export async function initiatePasskeyRegisterFlow(): Promise<boolean> {
 	const res = await apiFetch<PublicKeyCredentialCreationOptionsJSON>(R_OPTIONS);
-
 	const r = await handleClientRegistration(res);
 
 	const verificationResp = await apiFetch<VerifiedRegistrationResponse>(R_VERIFY, 'POST', {
@@ -56,7 +55,6 @@ export async function initiatePasskeyAuthFlow(): Promise<boolean> {
 	const { headers, ...credentialRes } = await apiFetch<
 		PublicKeyCredentialRequestOptionsJSON & { headers: Headers }
 	>(A_OPTIONS, 'GET', { includeHeaders: true });
-
 	const r = await handleClientAuthentication(credentialRes);
 
 	const challenge = headers.get('challenge') as string;

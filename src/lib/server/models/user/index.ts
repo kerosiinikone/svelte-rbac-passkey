@@ -1,3 +1,4 @@
+import { ValidationError } from '$lib/errors';
 import type { UserRow } from '$lib/server/db/schema';
 import { Roles } from '$lib/types';
 import { z, ZodError } from 'zod';
@@ -46,8 +47,7 @@ export class User {
 			userSchema.safeParse(this);
 		} catch (err) {
 			const error = err as ZodError;
-			const errors = error.flatten().fieldErrors;
-			// Custom Validation Error
+			throw new ValidationError('Invalid user', error);
 		}
 	}
 }
