@@ -10,4 +10,12 @@ export {
 	deletePasscodeEntry,
 	getPasscodeEntry
 } from './users.operations';
-export { getUserPasskeys, deletePasskey } from './passkeys.operations';
+export {
+	getUserPasskeys,
+	deletePasskey,
+	saveUserPasskeyOptions,
+	getLatestOptions,
+	createPasskeyEntry,
+	getPasskeyById,
+	deleteLatestOptions
+} from './passkeys.operations';

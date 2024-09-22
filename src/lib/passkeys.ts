@@ -18,7 +18,7 @@ const A_VERIFY = '/api/auth/passkeys/authenticate/verify';
 
 const apiFetch = createCaller(fetch);
 
-async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
+export async function handleClientRegistration(res: PublicKeyCredentialCreationOptionsJSON) {
 	try {
 		return await startRegistration(res);
 	} catch (error) {
@@ -42,7 +42,7 @@ export async function initiatePasskeyRegisterFlow(): Promise<boolean> {
 	return verificationResp.verified;
 }
 
-async function handleClientAuthentication(res: PublicKeyCredentialRequestOptionsJSON) {
+export async function handleClientAuthentication(res: PublicKeyCredentialRequestOptionsJSON) {
 	try {
 		return await startAuthentication(res);
 	} catch (error) {

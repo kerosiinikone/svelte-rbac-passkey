@@ -1,5 +1,4 @@
 import { JWT_SECRET } from '$env/static/private';
-import { DatabaseError } from '$lib/errors';
 import { getUserById } from '$lib/server/operations/users.operations';
 import { logout, setCookies, signTokenPayload } from '$lib/server/utils/auth';
 import type { CookieParameters, TokenResponse } from '$lib/types';
@@ -10,8 +9,10 @@ type AuthUser = {
 	id: string;
 };
 
+// Routes that require authentication
 const protectedRoutes = ['/', '/profile'];
 
+// Main hook that runs on server requests
 export async function handle({ event, resolve }) {
 	const accessToken = event.cookies.get('accessToken');
 
@@ -32,10 +33,12 @@ export async function handle({ event, resolve }) {
 	return response;
 }
 
+// Match the protected routes to the incoming req path
 const protectedRouteMatcher = (path: string, routes: string[]): boolean =>
 	routes.some((r) => path.startsWith(r));
 
-async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
+// Get a new set of tokens
+async function refreshTokens(refreshToken: string): Promise<TokenResponse | null> {
 	let verifiedRefreshPayload;
 
 	try {
@@ -48,34 +51,40 @@ async function getTokens(refreshToken: string): Promise<TokenResponse | null> {
 		return null;
 	}
 
-	const user = await getUserById(verifiedRefreshPayload.id);
+	try {
+		const user = await getUserById(verifiedRefreshPayload.id);
 
-	if (!user) {
+		if (!user) {
+			return null;
+		}
+
+		if (verifiedRefreshPayload.version !== user.token_version) {
+			return null;
+		}
+
+		// Sign new tokens
+		const { accessToken, refreshToken: newRefreshToken } = signTokenPayload(
+			user.id,
+			user.token_version + 1
+		);
+
+		return {
+			accessToken,
+			refreshToken: newRefreshToken
+		};
+	} catch (error) {
+		// DB Error
 		return null;
 	}
-
-	if (verifiedRefreshPayload.version !== user.token_version) {
-		return null;
-	}
-
-	// Sign new tokens
-	const { accessToken, refreshToken: newRefreshToken } = signTokenPayload(
-		user.id,
-		user.token_version + 1
-	);
-
-	return {
-		accessToken,
-		refreshToken: newRefreshToken
-	};
 }
 
-async function refresh(cookies: Cookies): Promise<AuthUser | null> {
+// Refresh logic to revalidate the user auth
+async function attemptTokenRefresh(cookies: Cookies): Promise<AuthUser | null> {
 	const initialRefreshToken = cookies.get('refreshToken');
 
 	if (!initialRefreshToken) return null;
 
-	const tokenSet = await getTokens(initialRefreshToken);
+	const tokenSet = await refreshTokens(initialRefreshToken);
 
 	if (!tokenSet) return null;
 
@@ -104,6 +113,7 @@ async function refresh(cookies: Cookies): Promise<AuthUser | null> {
 	}
 }
 
+// Verify the user auth with the access token
 async function verifyAndFetchUser(accessToken: string, cookies: Cookies): Promise<AuthUser | null> {
 	let verifiedAccessPayload;
 
@@ -113,12 +123,16 @@ async function verifyAndFetchUser(accessToken: string, cookies: Cookies): Promis
 			exp: number;
 		};
 	} catch (e) {
-		return await refresh(cookies);
+		return await attemptTokenRefresh(cookies);
 	}
+	try {
+		const fetchedUser = await getUserById(verifiedAccessPayload.id);
 
-	const fetchedUser = await getUserById(verifiedAccessPayload.id);
+		if (!fetchedUser) return null;
 
-	if (!fetchedUser) return null;
-
-	return { id: fetchedUser.id };
+		return { id: fetchedUser.id };
+	} catch (error) {
+		// DB Error
+		return null;
+	}
 }

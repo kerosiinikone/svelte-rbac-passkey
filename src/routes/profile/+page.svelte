@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { applyAction, enhance } from '$app/forms';
 	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { PasskeyError } from '$lib/errors';
 	import { initiatePasskeyRegisterFlow } from '$lib/passkeys';
@@ -7,13 +7,9 @@
 	import PrimaryAuthBtn from '../../lib/components/PrimaryAuthBtn.svelte';
 
 	const { data } = $props();
-	let role: Roles = $state(data.user.role);
+	let role: Roles = $state(data.user!.role);
 
-	async function handleClick(
-		e: MouseEvent & {
-			currentTarget: EventTarget & HTMLButtonElement;
-		}
-	) {
+	async function handleClick() {
 		try {
 			if (await initiatePasskeyRegisterFlow())
 				goto('/profile', {
@@ -41,11 +37,12 @@
 			method="POST"
 			use:enhance={({ formData }) => {
 				formData.append('pid', passkey.id);
-				return ({ result }) => {
+				return async ({ result }) => {
 					if (result.type == 'success' && result.data?.error) {
 						// Toast
 					}
 					invalidate('/');
+					await applyAction(result);
 				};
 			}}
 			action="?/deletePasskey"
@@ -100,11 +97,12 @@
 						default:
 							break;
 					}
-					return ({ result }) => {
+					return async ({ result }) => {
 						if (result.type == 'success' && result.data?.error) {
 							// Toast
 						}
 						invalidate('/');
+						await applyAction(result);
 					};
 				}}
 				class="flex flex-row gap-4"
@@ -130,7 +128,7 @@
 		<div id="passkey-section" class="w-full flex flex-col gap-4 justify-center">
 			<h4 class="text-h4 font-semibold">Pääsyavaimet</h4>
 			{#if data.verifiedPasskeys?.length! > 0}
-				{#each data.verifiedPasskeys as passkey, i}
+				{#each data.verifiedPasskeys! as passkey, i}
 					{@render passkeyItem(passkey, i)}
 				{/each}
 			{:else}

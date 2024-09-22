@@ -1,10 +1,10 @@
 import { JWT_SECRET } from '$env/static/private';
-import db from '$lib/server/db/index.js';
-import { userPasskeyOptions, usersTable, webPasskeyTable } from '$lib/server/db/schema.js';
+import { getUserById, getUserPasskeys, saveUserPasskeyOptions } from '$lib/server/operations';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { error, json } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
+
+const noAuth: () => never = error.bind(null, 401, 'No auth');
 
 export const GET = async ({ cookies }) => {
 	const accessToken = cookies.get('accessToken');
@@ -17,28 +17,17 @@ export const GET = async ({ cookies }) => {
 			exp: number;
 		};
 	} catch (e) {
-		// Automatic refresh with refreshToken, if not possible -> logout sequence
-		error(500, 'Invalid token');
+		noAuth();
 	}
 
-	const user = await db
-		.select()
-		.from(usersTable)
-		.where(eq(usersTable.id, verifiedAccessPayload.id))
-		.then((res) => res[0] ?? null);
+	// Handle possible db error?
+	const user = await getUserById(verifiedAccessPayload.id);
 
 	if (!user) {
-		// Logout
-		error(500, 'Invalid token');
+		noAuth();
 	}
 
-	const userPasskeys = await db
-		.select({
-			key: webPasskeyTable.credId
-		})
-		.from(webPasskeyTable)
-		.leftJoin(usersTable, eq(usersTable.id, webPasskeyTable.internalUserId))
-		.where(eq(usersTable.id, user.id));
+	const userPasskeys = await getUserPasskeys(user.id);
 
 	const options = await generateRegistrationOptions({
 		rpName: 'Svelte Demo', // Example
@@ -46,7 +35,7 @@ export const GET = async ({ cookies }) => {
 		userName: user.email,
 		attestationType: 'none',
 		excludeCredentials: userPasskeys.map((passkey) => ({
-			id: passkey.key
+			id: passkey.credId
 		})),
 		authenticatorSelection: {
 			residentKey: 'discouraged',
@@ -56,12 +45,7 @@ export const GET = async ({ cookies }) => {
 	});
 
 	// Could also be saved in the session object, but I'm not using sessions
-	await db.insert(userPasskeyOptions).values({
-		challenge: options.challenge,
-		id: crypto.randomUUID(),
-		userId: user.id,
-		webauthnUserId: options.user.id
-	});
+	await saveUserPasskeyOptions(user.id, options);
 
 	return json(options);
 };

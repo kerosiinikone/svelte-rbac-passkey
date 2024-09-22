@@ -3,7 +3,12 @@ import type { CookieParameters, TokenResponse } from '$lib/types';
 import type { Cookies } from '@sveltejs/kit';
 import jwt from 'jsonwebtoken';
 
-const DEFAULT_COOKIE_OPTS = { secure: true, httpOnly: true, path: '/' };
+const DEFAULT_COOKIE_OPTS = {
+	secure: true,
+	httpOnly: true,
+	path: '/',
+	sameSite: 'lax' as boolean | 'lax' | 'strict' | 'none' | undefined
+};
 
 export function setCookies(writer: Cookies, cookies: CookieParameters[]): void {
 	cookies.map((c) => {

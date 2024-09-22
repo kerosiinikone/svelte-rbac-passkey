@@ -1,10 +1,15 @@
 import { JWT_SECRET } from '$env/static/private';
-import db from '$lib/server/db/index.js';
-import { userPasskeyOptions, usersTable, webPasskeyTable } from '$lib/server/db/schema.js';
+import {
+	createPasskeyEntry,
+	deleteLatestOptions,
+	getLatestOptions,
+	getUserById
+} from '$lib/server/operations';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, json } from '@sveltejs/kit';
-import { desc, eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
+
+const noAuth: () => never = error.bind(null, 401, 'No auth');
 
 const ORIGIN = `http://localhost:5173`;
 
@@ -20,24 +25,17 @@ export const POST = async ({ cookies, request }) => {
 			exp: number;
 		};
 	} catch (e) {
-		// Automatic refresh with refreshToken, if not possible -> logout sequence
-		error(500, 'Invalid token');
+		noAuth();
 	}
 
-	// For testing:
-	const user = await db
-		.select()
-		.from(usersTable)
-		.where(eq(usersTable.id, verifiedAccessPayload.id))
-		.then((res) => res[0] ?? null);
+	const user = await getUserById(verifiedAccessPayload.id);
+
+	if (!user) {
+		noAuth();
+	}
 
 	// Fetch the lastest option
-	const latestOption = await db
-		.select()
-		.from(userPasskeyOptions)
-		.orderBy(desc(userPasskeyOptions.created_at))
-		.where(eq(userPasskeyOptions.userId, user.id))
-		.then((res) => res[0] ?? null);
+	const latestOption = await getLatestOptions(user.id);
 
 	let verification;
 
@@ -49,6 +47,7 @@ export const POST = async ({ cookies, request }) => {
 			expectedRPID: 'localhost'
 		});
 	} catch (e) {
+		// Throw a PasskeyError?
 		error(400);
 	}
 
@@ -56,23 +55,21 @@ export const POST = async ({ cookies, request }) => {
 		'base64'
 	);
 
-	await db.insert(webPasskeyTable).values({
-		credPublicKey: base64Data,
-		credId: verification.registrationInfo?.credentialID!,
-		internalUserId: user.id,
-		webauthnUserId: latestOption.webauthnUserId,
-		counter: verification.registrationInfo?.counter!,
-		backupStatus: verification.registrationInfo?.credentialBackedUp!
+	await createPasskeyEntry({
+		base64Data,
+		latestOption,
+		user: user.id,
+		verification
 	});
 
 	if (verification.verified && verification.registrationInfo) {
 		// Clean up the db
-		await db.delete(userPasskeyOptions).where(eq(userPasskeyOptions.id, latestOption.id));
+		await deleteLatestOptions(latestOption.id);
 
 		// Add the returned device to the user's list of devices
 		// Keep a table of devices in a one-to-many relationship between users and devices
 	} else {
-		error(400, 'Verification failed!');
+		error(400);
 	}
 
 	return json(verification);

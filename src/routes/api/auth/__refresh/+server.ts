@@ -1,5 +1,5 @@
 import { JWT_SECRET } from '$env/static/private';
-import { db } from '$lib/server/db/index.js';
+import db from '$lib/server/db/index.js';
 import { usersTable } from '$lib/server/db/schema.js';
 import { error, json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { applyAction, enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { PasskeyError } from '$lib/errors.js';
 	import { initiatePasskeyAuthFlow } from '$lib/passkeys.js';
@@ -7,11 +7,7 @@
 	const { form } = $props();
 	let isPending = $state(false);
 
-	async function handleClick(
-		_: MouseEvent & {
-			currentTarget: EventTarget & HTMLButtonElement;
-		}
-	) {
+	async function handleClick() {
 		try {
 			if (await initiatePasskeyAuthFlow())
 				goto('/profile', {
@@ -24,7 +20,6 @@
 			}
 		}
 	}
-
 	$effect(() => {
 		if (form) {
 			isPending = false;
@@ -45,10 +40,11 @@
 					isPending = true;
 				}}
 				use:enhance={() => {
-					return ({ result }) => {
+					return async ({ result }) => {
 						if (result.type == 'success' && result.data?.error) {
 							// Toast
 						}
+						await applyAction(result);
 					};
 				}}
 				action="?/signin"

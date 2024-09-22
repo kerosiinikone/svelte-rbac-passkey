@@ -1,6 +1,7 @@
-import { startRegistration } from '@simplewebauthn/browser';
-import { generateRegistrationOptions } from '@simplewebauthn/server';
+import { handleClientRegistration } from '$lib/passkeys';
 import * as browser from '@simplewebauthn/browser';
+import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
+import type { RegistrationResponseJSON } from '@simplewebauthn/types';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 global.navigator = {
@@ -32,6 +33,7 @@ describe('passkey generation', async () => {
 			rpName: 'test',
 			rpID: 'localhost',
 			userName: 'test',
+			challenge: 'test',
 			attestationType: 'none',
 			authenticatorSelection: {
 				residentKey: 'discouraged',
@@ -57,7 +59,8 @@ describe('passkey generation', async () => {
 		};
 		(navigator.credentials.create as Mock).mockResolvedValue(mockCredential);
 
-		const result = await startRegistration(options);
+		// Unit test function
+		const result = await handleClientRegistration(options);
 
 		expect(result).toEqual({
 			id: 'test',

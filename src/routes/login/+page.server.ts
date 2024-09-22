@@ -6,7 +6,7 @@ import { createPasscode, setCookies, signTokenPayload } from '$lib/server/utils/
 import { saveUser } from '$lib/server/utils/dto.js';
 import { EmailService } from '$lib/server/utils/email.js';
 import { Roles, type CookieParameters } from '$lib/types.js';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 
@@ -56,14 +56,13 @@ export const actions = {
 					httpOnly: true,
 					maxAge: 1000 * 60 * 6 // 5 minutes
 				});
-
-				redirect(303, '/login/confirmation');
 			} catch (err) {
 				if (err instanceof DatabaseError) {
 					return { error: err.message };
 				}
 				error(500);
 			}
+			redirect(303, '/login/confirmation');
 		}
 
 		try {
@@ -85,13 +84,13 @@ export const actions = {
 			});
 
 			locals.user = user.getId();
-
-			redirect(303, '/login/create-passkey');
 		} catch (err) {
 			if (err instanceof DatabaseError) {
 				return { error: err.message };
 			}
 			error(500);
 		}
+
+		redirect(303, '/login/create-passkey');
 	}
 };
