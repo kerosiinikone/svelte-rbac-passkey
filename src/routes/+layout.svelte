@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import Header from '$lib/components/Header.svelte';
 	import '../app.css';
 	import PrimaryAuthBtn from '../lib/components/PrimaryAuthBtn.svelte';
 
@@ -7,13 +8,7 @@
 </script>
 
 <div class="h-screen w-screen flex flex-col items-center bg-slate-100">
-	<div class="flex flex-row justify-center items-center w-full h-16 bg-black">
-		{#if !data.user}
-			<h3 class="text-white">🎉 Kirjaudu sisään</h3>
-		{:else}
-			<h3 class="text-white">🎉 RBAC</h3>
-		{/if}
-	</div>
+	<Header {data} />
 	<div
 		id="container"
 		class="flex flex-col h-full bg-white rounded-[60px] w-full xl:w-3/4 mt-10 mb-20 mx-20 shadow"

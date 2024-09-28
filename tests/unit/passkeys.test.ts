@@ -1,7 +1,6 @@
 import { handleClientRegistration } from '$lib/passkeys';
 import * as browser from '@simplewebauthn/browser';
-import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
-import type { RegistrationResponseJSON } from '@simplewebauthn/types';
+import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 global.navigator = {
@@ -25,6 +24,22 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
+const REGISTRATION_RES = {
+	id: 'dGVzdA',
+	rawId: 'dGVzdA',
+	response: {
+		attestationObject: '',
+		clientDataJSON: '',
+		transports: [],
+		publicKeyAlgorithm: 1,
+		publicKey: '',
+		authenticatorData: ''
+	},
+	type: 'public-key',
+	clientExtensionResults: {},
+	authenticatorAttachment: 'platform'
+};
+
 describe('passkey generation', async () => {
 	it('generate valid passkey options', async () => {
 		vi.spyOn(browser, 'browserSupportsWebAuthn').mockReturnValue(true);
@@ -43,8 +58,8 @@ describe('passkey generation', async () => {
 		});
 
 		const mockCredential = {
-			id: 'test',
-			rawId: new Uint8Array(),
+			id: 'dGVzdA',
+			rawId: Buffer.from('dGVzdA'),
 			response: {
 				attestationObject: new Uint8Array(),
 				clientDataJSON: new Uint8Array(),
@@ -59,23 +74,8 @@ describe('passkey generation', async () => {
 		};
 		(navigator.credentials.create as Mock).mockResolvedValue(mockCredential);
 
-		// Unit test function
 		const result = await handleClientRegistration(options);
 
-		expect(result).toEqual({
-			id: 'test',
-			rawId: '',
-			response: {
-				attestationObject: '',
-				clientDataJSON: '',
-				transports: [],
-				publicKeyAlgorithm: 1,
-				publicKey: '',
-				authenticatorData: ''
-			},
-			type: 'public-key',
-			clientExtensionResults: {},
-			authenticatorAttachment: 'platform'
-		});
+		expect(result).toEqual(REGISTRATION_RES);
 	});
 });

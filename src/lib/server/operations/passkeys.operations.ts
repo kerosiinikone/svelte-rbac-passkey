@@ -1,15 +1,14 @@
+import { DatabaseError } from '$lib/errors';
+import type { VerifiedRegistrationResponse } from '@simplewebauthn/server';
+import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
 import { desc, DrizzleError, eq } from 'drizzle-orm';
 import db from '../db';
 import {
 	userPasskeyOptions,
-	usersTable,
 	webPasskeyTable,
 	type PasskeyOptionsRow,
 	type PasskeyRow
 } from '../db/schema';
-import { DatabaseError } from '$lib/errors';
-import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/types';
-import type { VerifiedRegistrationResponse } from '@simplewebauthn/server';
 
 interface PasskeyCreateParameters {
 	base64Data: string;

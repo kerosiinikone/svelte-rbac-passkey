@@ -55,6 +55,8 @@ export const POST = async ({ cookies, request }) => {
 		'base64'
 	);
 
+	if (!verification.registrationInfo) error(400);
+
 	await createPasskeyEntry({
 		base64Data,
 		latestOption,
