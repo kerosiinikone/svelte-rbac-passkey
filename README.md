@@ -1,3 +1,5 @@
+![image](https://github.com/user-attachments/assets/de8ac1ab-b14a-46be-9da6-e0945ff13df6)
+
 ### TODO
 
 - Comprehensive doc (passkey logic and its implementation here)
