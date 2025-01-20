@@ -82,6 +82,6 @@ export const actions = {
 			}
 			error(500);
 		}
-		return redirect(303, '/profile');
+		redirect(303, '/profile');
 	}
 };

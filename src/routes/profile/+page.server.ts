@@ -47,13 +47,13 @@ export const actions = {
 
 		try {
 			await deletePasskey(pid);
-			redirect(303, '/profile');
 		} catch (err) {
 			if (err instanceof DatabaseError) {
 				return { error: err.message };
 			}
 			error(500);
 		}
+		redirect(303, '/profile');
 	},
 	switchRole: async ({ request, locals }) => {
 		const schema = z.nativeEnum(Roles);

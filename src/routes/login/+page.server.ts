@@ -89,7 +89,6 @@ export const actions = {
 			}
 			error(500);
 		}
-
-		return redirect(303, '/login/create-passkey');
+		redirect(303, '/login/create-passkey');
 	}
 };
