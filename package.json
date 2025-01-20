@@ -43,6 +43,7 @@
 	"dependencies": {
 		"@simplewebauthn/browser": "^10.0.0",
 		"@simplewebauthn/server": "^10.0.1",
+		"@simplewebauthn/types": "^12.0.0",
 		"@types/bcrypt": "^5.0.2",
 		"@types/jsonwebtoken": "^9.0.6",
 		"bcrypt": "^5.1.1",
