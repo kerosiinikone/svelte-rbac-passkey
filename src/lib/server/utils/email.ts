@@ -18,12 +18,16 @@ class TransportService {
 			return this.createTestTransporter(config);
 		} else {
 			return nodemailer.createTransport({
+				service: "Gmail",
 				host: config.host,
 				port: config.port,
 				secure: config.isSecure,
 				auth: {
 					user: EMAIL_ADDRESS,
 					pass: EMAIL_PASSWORD
+				},
+				tls: {
+					ciphers:'SSLv3'
 				}
 			});
 		}

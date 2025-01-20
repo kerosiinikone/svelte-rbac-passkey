@@ -29,11 +29,8 @@ export const load = async ({ locals }) => {
 export const actions = {
 	deletePasskey: async ({ request, locals }) => {
 		const schema = z.string();
-
 		const formData = Object.fromEntries(await request.formData());
-
 		const pid = formData.pid as string;
-
 		const result = schema.safeParse(pid);
 
 		if (!result.success) {
@@ -60,10 +57,8 @@ export const actions = {
 	},
 	switchRole: async ({ request, locals }) => {
 		const schema = z.nativeEnum(Roles);
-
 		const formData = Object.fromEntries(await request.formData());
 		const role = formData.role as string;
-
 		const result = schema.safeParse(role);
 
 		if (!result.success) {

@@ -5,27 +5,27 @@ import type Mail from 'nodemailer/lib/mailer';
 export class MockWriter implements Cookies {
 	private cookieStore: Record<string, string> = {};
 
-	get(name: string, _?: import('cookie').CookieParseOptions): string | undefined {
+	get(name: string, _?: import('cookie').ParseOptions): string | undefined {
 		return this.cookieStore[name];
 	}
 	set(
 		name: string,
 		value: string,
-		_: import('cookie').CookieSerializeOptions & { path: string }
+		_: import('cookie').SerializeOptions & { path: string }
 	): void {
 		this.cookieStore[name] = value;
 	}
 	serialize(
 		_: string,
 		__: string,
-		___: import('cookie').CookieSerializeOptions & { path: string }
+		___: import('cookie').SerializeOptions & { path: string }
 	): string {
 		return '';
 	}
-	delete(name: string, _: import('cookie').CookieSerializeOptions & { path: string }): void {
+	delete(name: string, _: import('cookie').SerializeOptions & { path: string }): void {
 		delete this.cookieStore[name];
 	}
-	getAll(_?: import('cookie').CookieParseOptions): Array<{ name: string; value: string }> {
+	getAll(_?: import('cookie').ParseOptions): Array<{ name: string; value: string }> {
 		var arr = [];
 		for (var item in this.cookieStore) {
 			arr.push({ name: item, value: this.cookieStore[item] });

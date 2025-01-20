@@ -71,10 +71,14 @@ async function handleRefreshToken(cookies: Cookies): Promise<AuthUser | null> {
 			{ name: 'refreshToken', val: tokens.refreshToken, opts: { maxAge: 15 * 60 * 1000 } }
 		];
         setCookies(cookies, cookieList);
-		
-		const payload = verifyJWT<AccessTokenPayload>(tokens.accessToken);
-        const user = await getUserById(payload.id);
-        return user ? { id: user.id } : null;
+
+		try {
+			const payload = verifyJWT<AccessTokenPayload>(tokens.accessToken);
+			const user = await getUserById(payload.id);
+			return user ? { id: user.id } : null;
+		} catch (error) {
+			return null;
+		}
     }
     return null;
 }
@@ -82,14 +86,9 @@ async function handleRefreshToken(cookies: Cookies): Promise<AuthUser | null> {
 async function verifyAndFetchUser(token: string, cookies: Cookies): Promise<AuthUser | null> {
     try {
         const payload = verifyJWT<AccessTokenPayload>(token);
-        if (payload.exp < Date.now() / 1000) {
-			console.log('Token expired, refreshing...');
-			return await handleRefreshToken(cookies);
-        }
         const user = await getUserById(payload.id);
         return user ? { id: user.id } : null;
     } catch (error) {
-        console.error('Error verifying token:', error);
         const refreshToken = cookies.get('refreshToken');
         if (refreshToken) {
             return await handleRefreshToken(cookies);

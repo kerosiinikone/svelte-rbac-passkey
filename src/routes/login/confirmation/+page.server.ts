@@ -16,8 +16,6 @@ export const actions = {
 	default: async ({ request, cookies }) => {
 		const formData = Object.fromEntries(await request.formData());
 		const inputCode = formData.code as string;
-
-		// Get the email from a secure cookie
 		const email: string = JSON.parse(cookies.get('pending_email') as string);
 
 		if (!email) {
@@ -78,12 +76,12 @@ export const actions = {
 
 			setCookies(cookies, cookieList);
 
-			redirect(303, '/profile');
 		} catch (err) {
 			if (err instanceof DatabaseError) {
 				return { error: err.message };
 			}
 			error(500);
 		}
+		return redirect(303, '/profile');
 	}
 };

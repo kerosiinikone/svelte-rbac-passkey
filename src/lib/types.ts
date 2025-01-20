@@ -1,4 +1,4 @@
-import type { CookieSerializeOptions } from 'cookie';
+import type { SerializeOptions } from 'cookie';
 
 export enum Roles {
 	DEFAULT = 'DEFAULT',
@@ -9,7 +9,7 @@ export enum Roles {
 export type CookieParameters = {
 	name: string;
 	val: string;
-	opts: CookieSerializeOptions;
+	opts: SerializeOptions;
 };
 
 export interface TokenResponse {

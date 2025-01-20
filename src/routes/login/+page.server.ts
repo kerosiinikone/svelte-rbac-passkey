@@ -13,10 +13,8 @@ import { z } from 'zod';
 export const actions = {
 	signin: async ({ request, cookies, locals }) => {
 		const schema = z.string().email();
-
 		const formData = Object.fromEntries(await request.formData());
 		const email = formData.email as string;
-
 		const result = schema.safeParse(email);
 
 		if (!result.success) {
@@ -34,7 +32,7 @@ export const actions = {
 			try {
 				const mailer = new EmailService({
 					host: 'smtp.gmail.com',
-					port: 587,
+					port: 465,
 					isSecure: true,
 					provider: 'nodemailer'
 				});
@@ -60,6 +58,7 @@ export const actions = {
 				if (err instanceof DatabaseError) {
 					return { error: err.message };
 				}
+				console.log(err);
 				error(500);
 			}
 			redirect(303, '/login/confirmation');
@@ -91,6 +90,6 @@ export const actions = {
 			error(500);
 		}
 
-		redirect(303, '/login/create-passkey');
+		return redirect(303, '/login/create-passkey');
 	}
 };
